@@ -1,0 +1,516 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Floatinghints | David Gonzalez]]></title>
+  <link href="http://malmstein.github.io/blog/categories/floatinghints/atom.xml" rel="self"/>
+  <link href="http://malmstein.github.io/"/>
+  <updated>2014-09-22T18:19:20+01:00</updated>
+  <id>http://malmstein.github.io/</id>
+  <author>
+    <name><![CDATA[David Gonzalez]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Your Forms Don't Need to Be Ugly Part 3]]></title>
+    <link href="http://malmstein.github.io/blog/2014/07/09/your-forms-dont-need-to-be-ugly-part-3/"/>
+    <updated>2014-07-09T19:03:54+01:00</updated>
+    <id>http://malmstein.github.io/blog/2014/07/09/your-forms-dont-need-to-be-ugly-part-3</id>
+    <content type="html"><![CDATA[<p>This is the 3 part of a series of posts where we are trying to improve the ui and interaction with forms in Android. <a href="http://www.malmstein.com/blog/2014/06/15/your-forms-dont-need-to-be-ugly-part-2/">Part 2</a>
+introduced the <a href="http://www.github.com/malmstein/FloatingHints">FloatingHints</a> library and showed how this simple pattern can make a big impact
+in your forms.</p>
+
+<p>The source code for Part 2 is <a href="https://github.com/malmstein/UglyForms/tree/step_two">already available on Github</a>.</p>
+
+<p>On today&rsquo;s post, we will introduce an easy way of dealing with transitions between forms and how to respond to orientation changes</p>
+
+<!-- more -->
+
+
+<h2>The Form flow does not need to suck</h2>
+
+<p><img class="center <a" src="href="https://raw.githubusercontent.com/malmstein/UglyForms/master/art/animate_form.gif">https://raw.githubusercontent.com/malmstein/UglyForms/master/art/animate_form.gif</a>&#8221;></p>
+
+<p>It&rsquo;s very common to see a welcome message when opening a form which is telling us a bit about the application or simply because someone decided that
+we are all still living in the early days of the internet. Don&rsquo;t worry, we got you covered for that.</p>
+
+<p>One of the most annoying things that may happen when navigation through a Login form is when pressing the <strong>Register</strong> button.
+I&rsquo;ve seen things, and I&rsquo;m sure you also have! A common example is to jump to a whole new Activity, the user is going to see that ugly change of context,
+the famous white background in the screen while the screens change or even worse&hellip; it  may as well send the user to the Browser just
+because the application can&rsquo;t handle registrations.</p>
+
+<p>Wouldn&rsquo;t it be nice if you could just have a nicer way of showing all the content?</p>
+
+<h2>Animating transitions</h2>
+
+<p>There are several ways of animating views, <code>ViewPager</code>, <code>ViewAnimator</code>, <code>ViewSwitcher</code> being the most used examples.</p>
+
+<p>Before start using a <code>ViewPager</code> and write adapters, fragments, etc&hellip; let&rsquo;s understand what we are talking about here. This is more a personal
+point of view than anything else but, I&rsquo;m just not a big fun of building a castle when I only need a hut. Our form currently has two main goals,
+<strong>Sign in</strong> and <strong>Register</strong> users, that&rsquo;s 2 actions and bunch of <code>EditText</code>so let&rsquo;s keep it simple.</p>
+
+<p>We are going to create three different views, one for <strong>Register</strong>, one for the <strong>Welcome message</strong> and the last one for <strong>Signining in</strong>. We will
+then use an animator to make the transitions from one view to another. As discussed earlier, <code>ViewPager</code>could be a solution
+but I don&rsquo;t see the need of using adapters and fragments for this purpose. <code>ViewSwitcher</code>only allows use to switch between two views so
+the ideal candidate for this task is a <code>ViewAnimator</code>.</p>
+
+<p>One thing though, we are not going to show one view after the other. Instead, we are going to switch between views with different animations
+by sliding the form left and right depending on the action that the user wants to take. Right, how do we do that?</p>
+
+<h2>The MultipleViewSwitcher</h2>
+
+<p><img class="center <a" src="href="https://raw.githubusercontent.com/malmstein/UglyForms/step_three/art/animate_form.gif">https://raw.githubusercontent.com/malmstein/UglyForms/step_three/art/animate_form.gif</a>&#8221;></p>
+
+<p>As you can see, after showing the welcome message if the user wants to Register we&rsquo;ll slide the form from the left and if the user wants
+to Log in we will slide the form from the right. To do that, the <code>MultipleViewSwitcher</code>needs to add
+some new functionality to what the <code>ViewAnimator</code>can do.</p>
+
+<p>The first addition is that we need to be able to change the initial page of the view.
+There are several ways of doing this but since we are extending <code>ViewAnimator</code>and I really like to use the <code>ViewAttributes</code>we will
+set this initial page as an attribute.</p>
+
+<p><strong>attrs.xml</strong>
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'>  <span class="nt">&lt;declare-styleable</span> <span class="na">name=</span><span class="s">&quot;MultipleViewSwitcher&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;attr</span> <span class="na">name=</span><span class="s">&quot;initialPage&quot;</span> <span class="na">format=</span><span class="s">&quot;integer&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;/declare-styleable&gt;&lt;/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nt">&lt;p&gt;</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>Our new view is now able to use this attribute and change the displayed page once it&rsquo;s inflated. Note that this page change can&rsquo;t be done
+before the view is inflated since it has not computed yet all all it&rsquo;s children nor added them to the <code>ViewGroup</code>.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="kd">public</span> <span class="kd">class</span> <span class="nc">MultipleViewSwitcher</span> <span class="kd">extends</span> <span class="n">ViewAnimator</span> <span class="o">{&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span>  <span class="kd">private</span> <span class="kt">int</span> <span class="n">initialChild</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">public</span> <span class="nf">MultipleViewSwitcher</span><span class="o">(</span><span class="n">Context</span> <span class="n">context</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">this</span><span class="o">(</span><span class="n">context</span><span class="o">,</span> <span class="kc">null</span><span class="o">);</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">public</span> <span class="nf">MultipleViewSwitcher</span><span class="o">(</span><span class="n">Context</span> <span class="n">context</span><span class="o">,</span> <span class="n">AttributeSet</span> <span class="n">attrs</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">this</span><span class="o">(</span><span class="n">context</span><span class="o">,</span> <span class="n">attrs</span><span class="o">,</span> <span class="mi">0</span><span class="o">);</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">public</span> <span class="nf">MultipleViewSwitcher</span><span class="o">(</span><span class="n">Context</span> <span class="n">context</span><span class="o">,</span> <span class="n">AttributeSet</span> <span class="n">attrs</span><span class="o">,</span> <span class="kt">int</span> <span class="n">defStyle</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="kd">super</span><span class="o">(</span><span class="n">context</span><span class="o">,</span> <span class="n">attrs</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">TypedArray</span> <span class="n">a</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="na">obtainStyledAttributes</span><span class="o">(</span><span class="n">attrs</span><span class="o">,</span> <span class="n">R</span><span class="o">.</span><span class="na">styleable</span><span class="o">.</span><span class="na">MultipleViewSwitcher</span><span class="o">,</span> <span class="n">defStyle</span><span class="o">,</span> <span class="mi">0</span><span class="o">);</span>
+</span><span class='line'>      <span class="n">initialChild</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="na">getInt</span><span class="o">(</span><span class="n">R</span><span class="o">.</span><span class="na">styleable</span><span class="o">.</span><span class="na">MultipleViewSwitcher_initialPage</span><span class="o">,</span> <span class="mi">0</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">a</span><span class="o">.</span><span class="na">recycle</span><span class="o">();</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nd">@Override</span>
+</span><span class='line'>  <span class="kd">protected</span> <span class="kt">void</span> <span class="nf">onFinishInflate</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>      <span class="kd">super</span><span class="o">.</span><span class="na">onFinishInflate</span><span class="o">();</span>
+</span><span class='line'>      <span class="n">displayInitialViewIfNecessary</span><span class="o">();</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">private</span> <span class="kt">void</span> <span class="nf">displayInitialViewIfNecessary</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">if</span> <span class="o">(</span><span class="n">initialChild</span> <span class="o">&amp;</span><span class="n">gt</span><span class="o">;</span> <span class="mi">0</span><span class="o">){</span>
+</span><span class='line'>          <span class="n">setDisplayedChild</span><span class="o">(</span><span class="n">initialChild</span><span class="o">);</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>As you all know, the first view in the <code>ViewAnimator</code>has the id 0 so we are going to set our initialPage as 1:</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'>    <span class="ni">&amp;lt;</span>com.malmstein.widgets.MultipleViewSwitcher
+</span><span class='line'>      android:id=<span class="ni">&amp;ldquo;</span>@+id/form_animator<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>      android:layout_width=<span class="ni">&amp;ldquo;</span>match_parent<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>      android:layout_height=<span class="ni">&amp;ldquo;</span>wrap_content<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>      app:initialPage=<span class="ni">&amp;ldquo;</span>1<span class="ni">&amp;rdquo;</span>&gt;<span class="nt">&lt;/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nt">&lt;pre&gt;&lt;code&gt;</span>  <span class="ni">&amp;lt;</span>include
+</span><span class='line'>    android:id=&quot;@+id/form_register&quot;
+</span><span class='line'>    layout=&quot;@layout/view_form_register&quot; /<span class="ni">&amp;gt;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="ni">&amp;lt;</span>include
+</span><span class='line'>    android:id=&quot;@+id/form_welcome_message&quot;
+</span><span class='line'>    layout=&quot;@layout/view_form_welcome&quot; /<span class="ni">&amp;gt;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="ni">&amp;lt;</span>include
+</span><span class='line'>    android:id=&quot;@+id/form_login&quot;
+</span><span class='line'>    layout=&quot;@layout/view_form_login&quot; /<span class="ni">&amp;gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="ni">&amp;lt;</span>/com.malmstein.widgets.MultipleViewSwitcher<span class="ni">&amp;gt;</span>
+</span><span class='line'><span class="nt">&lt;/code&gt;&lt;/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nt">&lt;p&gt;</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>Cool, now all the form is in place and our first page is the <strong>Welcome Message</strong>. Earlier we said that we wanted to animate the
+transitions between forms, and that&rsquo;s exactly what the <code>MultipleViewSwitcher</code>is made for. Basically, there are two methods and attributes
+that we are going to use in order to achieve this <code>setInAnimation(Animation inAnimation)</code>and <code>setOutAnimation(Animation inAnimation)</code></p>
+
+<p>As you&rsquo;ve seen, the forms are not always sliding into the same direction but changing based on the current page. In order to achieve that we are also
+going to add some changes to the transition logic so this can be easily handled.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;*</span>
+</span><span class='line'>     <span class="o">*</span> <span class="n">Animates</span> <span class="n">the</span> <span class="n">view</span> <span class="n">to</span> <span class="n">the</span> <span class="n">next</span> <span class="n">children</span> <span class="n">using</span> <span class="n">the</span> <span class="n">animations</span> <span class="n">specified</span>
+</span><span class='line'>     <span class="o">*</span>
+</span><span class='line'>     <span class="o">*</span> <span class="nd">@param</span> <span class="n">inAnimation</span> <span class="n">The</span> <span class="n">inAnimation</span>
+</span><span class='line'>     <span class="o">*</span> <span class="nd">@param</span> <span class="n">outAnimation</span> <span class="n">The</span> <span class="n">outAnimation</span>
+</span><span class='line'>     <span class="o">&lt;/</span><span class="n">em</span><span class="o">&gt;/</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">animateNext</span><span class="o">(</span><span class="n">Animation</span> <span class="n">inAnimation</span><span class="o">,</span> <span class="n">Animation</span> <span class="n">outAnimation</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">setInAnimation</span><span class="o">(</span><span class="n">inAnimation</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">setOutAnimation</span><span class="o">(</span><span class="n">outAnimation</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">showNext</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">}&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="cm">/**</span>
+</span><span class='line'><span class="cm"> * Animates the view to the next children using the animations specified</span>
+</span><span class='line'><span class="cm"> *</span>
+</span><span class='line'><span class="cm"> * @param context              The application&#39;s environment.</span>
+</span><span class='line'><span class="cm"> * @param inAnimationResource  The resource id of the inAnimation.</span>
+</span><span class='line'><span class="cm"> * @param outAnimationResource The resource id of the outAnimation.</span>
+</span><span class='line'><span class="cm"> */</span>
+</span><span class='line'><span class="kd">public</span> <span class="kt">void</span> <span class="nf">animateNext</span><span class="o">(</span><span class="n">Context</span> <span class="n">context</span><span class="o">,</span> <span class="kt">int</span> <span class="n">inAnimationResource</span><span class="o">,</span> <span class="kt">int</span> <span class="n">outAnimationResource</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">animateNext</span><span class="o">(</span><span class="n">AnimationUtils</span><span class="o">.</span><span class="na">loadAnimation</span><span class="o">(</span><span class="n">context</span><span class="o">,</span> <span class="n">inAnimationResource</span><span class="o">),</span>
+</span><span class='line'>            <span class="n">AnimationUtils</span><span class="o">.</span><span class="na">loadAnimation</span><span class="o">(</span><span class="n">context</span><span class="o">,</span> <span class="n">outAnimationResource</span><span class="o">));</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>The view allows us to set two Animations which we will use to animate the views accordingly. Looking into
+the <a href="http://developer.android.com/reference/android/widget/ViewAnimator.html">ViewAnimator</a> implementation one can
+see that it&rsquo;s holding refference to both the <strong>In</strong> and the <strong>Out</strong> Animations, so there is no need for our new View to add more overhead to it.
+It is our responsability though to keep an eye on how many Animations we are loading and how we do it. Same as the <code>ViewAnimator</code>, the <code>MultipleViewSwitcher</code>
+can receive a new Animation by parameter or the resourceId of it which we will then load with <code>AnimationUtils.loadAnimation(context, animationResource)</code></p>
+
+<p>At this point we hace achieved all the goals of the wanted but there is a small annoying issue, when rotating the device we are not saving the
+current displayed child <code>ViewAnimator</code>does not do it either, so it would be the Activity/Fragment responsibility. I&rsquo;d much rather have this solved
+in the View so we are going to save the state of the View when rotation.</p>
+
+<h2>Saving the state of the view</h2>
+
+<p>Since our form is now composed by more than one view, it would be nice to save the displayed child on orientation changes. No one wants to move the device from portrait to landscape
+and realise that the form is now showing the initial page. This view is not just usable in forms, one can easily use it to handle the on boarding wizard of an application.
+Can you imagine how frustrated the user would be if after swiping through four screens, the device is rotated and the wizards needs to be completed from the beginning?</p>
+
+<p>Android uses <code>Parcelable</code>to save the <a href="http://developer.android.com/reference/android/view/View.html#onSaveInstanceState(">instance state</a>). I&rsquo;ve seen plenty of implementations
+creating their own Parcelable, etc&hellip; but the easiest way in my opinion is using a <a href="http://developer.android.com/reference/android/os/Bundle.html">Bundle</a> (which implements Parcelable)</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">public</span> <span class="n">Parcelable</span> <span class="nf">onSaveInstanceState</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">Bundle</span> <span class="n">bundle</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">Bundle</span><span class="o">();</span>
+</span><span class='line'>    <span class="n">bundle</span><span class="o">.</span><span class="na">putParcelable</span><span class="o">(</span><span class="s">&quot;instanceState&quot;</span><span class="o">,</span> <span class="kd">super</span><span class="o">.</span><span class="na">onSaveInstanceState</span><span class="o">());</span>
+</span><span class='line'>    <span class="n">bundle</span><span class="o">.</span><span class="na">putInt</span><span class="o">(</span><span class="s">&quot;displayedChild&quot;</span><span class="o">,</span> <span class="n">getDisplayedChild</span><span class="o">());</span>
+</span><span class='line'>    <span class="k">return</span> <span class="n">bundle</span><span class="o">;</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">public</span> <span class="kt">void</span> <span class="nf">onRestoreInstanceState</span><span class="o">(</span><span class="n">Parcelable</span> <span class="n">state</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">state</span> <span class="k">instanceof</span> <span class="n">Bundle</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Bundle</span> <span class="n">bundle</span> <span class="o">=</span> <span class="o">(</span><span class="n">Bundle</span><span class="o">)</span> <span class="n">state</span><span class="o">;</span>
+</span><span class='line'>        <span class="n">initialChild</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="na">getInt</span><span class="o">(</span><span class="s">&quot;displayedChild&quot;</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">setDisplayedChild</span><span class="o">(</span><span class="n">initialChild</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">state</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="na">getParcelable</span><span class="o">(</span><span class="s">&quot;instanceState&quot;</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="kd">super</span><span class="o">.</span><span class="na">onRestoreInstanceState</span><span class="o">(</span><span class="n">state</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>When the device&rsquo;s orientation changes, the view itself will save it&rsquo;s instance state and restore the displayed child. It&rsquo;s very important that the View has it&rsquo;s own id defined
+in the XML layout, if it doesn&rsquo;t the <code>onSaveInstanceState()</code>and <code>onRestoreInstanceState()</code>won&rsquo;t be called and state won&rsquo;t be restored.</p>
+
+<h2>Show me the code</h2>
+
+<p>If this caught your attention, please check the source code for Part 3 <a href="https://github.com/malmstein/UglyForms/tree/step_three">already available on Github</a>.</p>
+
+<p>The next part will be last one and will add some love to the overall look and feel in addition to some interesting ideas about buttons and input keyboard handling.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Your Forms Don't Need to Be Ugly Part 2]]></title>
+    <link href="http://malmstein.github.io/blog/2014/06/15/your-forms-dont-need-to-be-ugly-part-2/"/>
+    <updated>2014-06-15T13:26:51+01:00</updated>
+    <id>http://malmstein.github.io/blog/2014/06/15/your-forms-dont-need-to-be-ugly-part-2</id>
+    <content type="html"><![CDATA[<p>Last week we <a href="http://www.malmstein.com/blog/2014/06/09/your-forms-dont-need-to-be-ugly-part-1/">started to talk</a> about how ugly forms can be displayed and raised some issues about it. Today is time to stop ranting and
+start contributing.</p>
+
+<h2>Introducing FloatingHints</h2>
+
+<p>A while ago thanks to <a href="https://plus.google.com/+ChrisBanes/posts/5Ejaq51UWGo">Chris Banes</a> and <a href="https://plus.google.com/118417777153109946393/posts/ewdTd7bNw29">Cyril Mottier</a> there was a buzz around a pattern called Floating Label Layout. I used this approach in
+the last project I&rsquo;ve been working on and the feedback was very good. Therefore, I&rsquo;m releasing this small library called <a href="https://github.com/malmstein/FloatingHints">FloatingHints</a> which
+you could use if you want to add a bit of styling to those ugly forms.</p>
+
+<p>The snapshot version is <strong>already available</strong> at Sonatype while the release version will be soon released at Maven Central.</p>
+
+<!-- more -->
+
+
+<h2>If you wouldn&rsquo;t use that form, why would the user?</h2>
+
+<p>In the previous post from the series we saw one of the most common form structures. A couple of EditText where the user will write the
+user and password and a button used to start the Login action.</p>
+
+<p>With the addition of the Floating Label pattern one can have a much nicer and clear screen. No one likes to fill these forms, not even the users
+excited about using your service&hellip; so why don&rsquo;t we encourage them to do so?</p>
+
+<p><img class="<a" src="href="https://lh4.googleusercontent.com/-65P7JghkHg0/U5X0kJ1SzEI/AAAAAAAAEvI/UijRmzcr1r4/w1118-h570-no/device-2014-06-05-155250.jpg">https://lh4.googleusercontent.com/-65P7JghkHg0/U5X0kJ1SzEI/AAAAAAAAEvI/UijRmzcr1r4/w1118-h570-no/device-2014-06-05-155250.jpg</a>&#8221;></p>
+
+<h2>Custom Animations</h2>
+
+<p>One of the key features of FloatingHints is that the animations which are in charge of showing or hiding the floating hint are fully customisable.
+By default, the hint will be shown using a <strong>Slide in to Top</strong> and will be hidden using a <strong>Slide out to Bottom</strong></p>
+
+<p><img class="center <a" src="href="https://raw.githubusercontent.com/malmstein/FloatingHints/master/art/floating.gif">https://raw.githubusercontent.com/malmstein/FloatingHints/master/art/floating.gif</a>&#8221;></p>
+
+<p>This can be easily customised via XML attributes.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'>  <span class="ni">&amp;lt;</span>com.malmstein.floatinghints.FloatingHintEditTextLayout
+</span><span class='line'>    android:layout_width=<span class="ni">&amp;ldquo;</span>match_parent<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>    android:layout_height=<span class="ni">&amp;ldquo;</span>wrap_content<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>    app:floatLayoutInAnimation=<span class="ni">&amp;ldquo;</span>@anim/abc_fade_in<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>    app:floatLayoutOutAnimation=<span class="ni">&amp;ldquo;</span>@anim/abc_fade_out<span class="ni">&amp;rdquo;</span>&gt;<span class="nt">&lt;/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nt">&lt;pre&gt;&lt;code&gt;</span><span class="ni">&amp;lt;</span>EditText
+</span><span class='line'>  style=&quot;@style/FloatLabel.Form.Text&quot;
+</span><span class='line'>  android:id=&quot;@+id/float_login_email&quot;
+</span><span class='line'>  android:layout_width=&quot;match_parent&quot;
+</span><span class='line'>  android:layout_height=&quot;wrap_content&quot;
+</span><span class='line'>  android:hint=&quot;@string/hint_email&quot;
+</span><span class='line'>  android:inputType=&quot;textEmailAddress&quot; /<span class="ni">&amp;gt;</span>
+</span><span class='line'><span class="nt">&lt;/code&gt;&lt;/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nt">&lt;p&gt;</span>  <span class="ni">&amp;lt;</span>/com.malmstein.floatinghints.FloatingHintEditTextLayout&gt;
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>The result of using <strong>Fade In</strong> and <strong>Fade Out</strong> is pretty good too!</p>
+
+<p><img class="center <a" src="href="https://raw.githubusercontent.com/malmstein/FloatingHints/master/art/floating_fade.gif">https://raw.githubusercontent.com/malmstein/FloatingHints/master/art/floating_fade.gif</a>&#8221;></p>
+
+<h2>Customise the color of the hint</h2>
+
+<p>The <code>FloatingHintEditTextLayout</code> uses the attribute <code>floatLayoutTextAppearance</code> to change the <a href="http://developer.android.com/reference/android/widget/TextView.html#attr_android:textAppearance">TextAppearance</a>
+of the Label.</p>
+
+<p><strong>activity_demo.xml</strong>
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'>  <span class="ni">&amp;lt;</span>com.malmstein.floatinghints.FloatingHintEditTextLayout
+</span><span class='line'>    android:layout_width=<span class="ni">&amp;ldquo;</span>match_parent<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>    android:layout_height=<span class="ni">&amp;ldquo;</span>wrap_content<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>    app:floatLayoutInAnimation=<span class="ni">&amp;ldquo;</span>@anim/abc_fade_in<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>    app:floatLayoutOutAnimation=<span class="ni">&amp;ldquo;</span>@anim/abc_fade_out<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>    app:floatLayoutTextAppearance=<span class="ni">&amp;ldquo;</span>@style/FloatLabel.Label<span class="ni">&amp;rdquo;</span>&gt;<span class="nt">&lt;/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nt">&lt;pre&gt;&lt;code&gt;</span><span class="ni">&amp;lt;</span>EditText
+</span><span class='line'>  style=&quot;@style/FloatLabel.Form.Text&quot;
+</span><span class='line'>  android:id=&quot;@+id/float_login_email&quot;
+</span><span class='line'>  android:layout_width=&quot;match_parent&quot;
+</span><span class='line'>  android:layout_height=&quot;wrap_content&quot;
+</span><span class='line'>  android:hint=&quot;@string/hint_email&quot;
+</span><span class='line'>  android:inputType=&quot;textEmailAddress&quot; /<span class="ni">&amp;gt;</span>
+</span><span class='line'><span class="nt">&lt;/code&gt;&lt;/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nt">&lt;p&gt;</span>  <span class="ni">&amp;lt;</span>/com.malmstein.floatinghints.FloatingHintEditTextLayout&gt;<span class="nt">&lt;/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nt">&lt;p&gt;</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p><strong>styles.xml</strong>
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'>  <span class="nt">&lt;style</span> <span class="na">name=</span><span class="s">&quot;FloatLabel.Label&quot;</span> <span class="na">parent=</span><span class="s">&quot;android:TextAppearance.Small&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;item</span> <span class="na">name=</span><span class="s">&quot;android:textColor&quot;</span><span class="nt">&gt;</span>@color/float_edit_text_layout_color<span class="nt">&lt;/item&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;item</span> <span class="na">name=</span><span class="s">&quot;android:textSize&quot;</span><span class="nt">&gt;</span>@dimen/text_xs<span class="nt">&lt;/item&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;item</span> <span class="na">name=</span><span class="s">&quot;android:textStyle&quot;</span><span class="nt">&gt;</span>bold<span class="nt">&lt;/item&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;/style&gt;</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p><strong>float_edit_text_layout_color.xml</strong>
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'><span class="nt">&lt;selector</span> <span class="na">xmlns:android=</span><span class="s">&quot;http://schemas.android.com/apk/res/android&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;item</span> <span class="na">android:color=</span><span class="s">&quot;@color/font_yellow&quot;</span> <span class="na">android:state_activated=</span><span class="s">&quot;true&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;item</span> <span class="na">android:color=</span><span class="s">&quot;@color/font_grey&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'><span class="nt">&lt;/selector&gt;</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>This way we&rsquo;ve just changed the text appearance of the label to yellow.</p>
+
+<p><img class="center <a" src="href="https://raw.githubusercontent.com/malmstein/FloatingHints/master/art/floating_fade_yellow.gif">https://raw.githubusercontent.com/malmstein/FloatingHints/master/art/floating_fade_yellow.gif</a>&#8221;></p>
+
+<h2>Wrapping up</h2>
+
+<p>The <a href="https://github.com/malmstein/FloatingHints/tree/master/app/src/main">demo</a> project from <a href="https://github.com/malmstein/FloatingHints">FloatingHints</a> contains a wrap up of all the ideas in this post.
+Check it out, fork it and don&rsquo;t hesitate in giving some feedback. It will be very much appreciated.</p>
+
+<p>Stay tuned for the next post of the series!</p>
+]]></content>
+  </entry>
+  
+</feed>

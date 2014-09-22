@@ -1,0 +1,575 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>How to Use a TextureView to Display a Video With Custom Media Player Controls - David Gonzalez</title>
+  <meta name="author" content="David Gonzalez">
+
+  
+  <meta name="description" content="For the past months at Novoda I&rsquo;ve been working on several video applications ARTE,
+Digital Concert Hall and MUBI. As you might figure by now, &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://malmstein.github.io/blog/2014/08/09/how-to-use-a-textureview-to-display-a-video-with-custom-media-player-controls">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="David Gonzalez" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-50897004-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">David Gonzalez</a></h1>
+  
+    <h2>Android Software Craftsman sharing his thoughts</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:malmstein.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/about">About me</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">How to Use a TextureView to Display a Video With Custom Media Player Controls</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-08-09T20:00:00+01:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:00 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>For the past months at <a href="http://www.novoda.com">Novoda</a> I&rsquo;ve been working on several video applications <a href="https://play.google.com/store/apps/details?id=tv.arte.plus7">ARTE</a>,
+<a href="https://play.google.com/store/apps/details?id=com.novoda.dch">Digital Concert Hall</a> and <a href="https://play.google.com/store/apps/details?id=com.mubi">MUBI</a>.</p>
+
+<p>As you might figure by now, the common feature of these applications is to display a video with customised media player controls. I thought it would be
+a good time to share some knowledge and show some ideas around video playing on Android. A couple of months ago I a <a href="https://speakerdeck.com/malmstein/streaming-the-droid">gave a talk</a>
+ about it at <strong>Droidcon Berlin</strong> showing some code but I never had the proper amount of time to make it into a library.</p>
+
+<!-- more -->
+
+
+<h2>Media Player lifecycle</h2>
+
+<p>The first thing we need to understand before playing videos or audio is the lifecycle of the <a href="http://developer.android.com/reference/android/media/MediaPlayer.html">Media Player</a></p>
+
+<p><img src="http://developer.android.com/images/mediaplayer_state_diagram.gif"></p>
+
+<p>As you see it&rsquo;s pretty straight forward, <strong>there are only 10 different states</strong>&hellip;</p>
+
+<p>The most important piece of information that can be extracted from this diagram is that one needs to be very strict regarding the
+behaviour of the <code>MediaPlayer</code>. It&rsquo;s very easy to follow the steps in the wrong order which will lead to frustration since debug information that the
+<code>MediaPlayer</code> provides is pretty bad:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="kd">static</span> <span class="kt">int</span> <span class="nf">getErrorMessage</span><span class="o">(</span><span class="kd">final</span> <span class="kt">int</span> <span class="n">frameworkError</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">messageId</span> <span class="o">=</span> <span class="n">R</span><span class="o">.</span><span class="na">string</span><span class="o">.</span><span class="na">play_error_message</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">frameworkError</span> <span class="o">==</span> <span class="n">MediaPlayer</span><span class="o">.</span><span class="na">MEDIA_ERROR_IO</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Log</span><span class="o">.</span><span class="na">e</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;TextureVideoView error. File or network related operation errors.&quot;</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span> <span class="k">else</span> <span class="nf">if</span> <span class="o">(</span><span class="n">frameworkError</span> <span class="o">==</span> <span class="n">MediaPlayer</span><span class="o">.</span><span class="na">MEDIA_ERROR_MALFORMED</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Log</span><span class="o">.</span><span class="na">e</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;TextureVideoView error. Bitstream is not conforming to the related coding standard or file spec.&quot;</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span> <span class="k">else</span> <span class="nf">if</span> <span class="o">(</span><span class="n">frameworkError</span> <span class="o">==</span> <span class="n">MediaPlayer</span><span class="o">.</span><span class="na">MEDIA_ERROR_SERVER_DIED</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Log</span><span class="o">.</span><span class="na">e</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;TextureVideoView error. Media server died. In this case, the application must release the MediaPlayer object and instantiate a new one.&quot;</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span> <span class="k">else</span> <span class="nf">if</span> <span class="o">(</span><span class="n">frameworkError</span> <span class="o">==</span> <span class="n">MediaPlayer</span><span class="o">.</span><span class="na">MEDIA_ERROR_TIMED_OUT</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Log</span><span class="o">.</span><span class="na">e</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;TextureVideoView error. Some operation takes too long to complete, usually more than 3-5 seconds.&quot;</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span> <span class="k">else</span> <span class="nf">if</span> <span class="o">(</span><span class="n">frameworkError</span> <span class="o">==</span> <span class="n">MediaPlayer</span><span class="o">.</span><span class="na">MEDIA_ERROR_UNKNOWN</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Log</span><span class="o">.</span><span class="na">e</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;TextureVideoView error. Unspecified media player error.&quot;</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span> <span class="k">else</span> <span class="nf">if</span> <span class="o">(</span><span class="n">frameworkError</span> <span class="o">==</span> <span class="n">MediaPlayer</span><span class="o">.</span><span class="na">MEDIA_ERROR_UNSUPPORTED</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Log</span><span class="o">.</span><span class="na">e</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;TextureVideoView error. Bitstream is conforming to the related coding standard or file spec, but the media framework does not support the feature.&quot;</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span> <span class="k">else</span> <span class="nf">if</span> <span class="o">(</span><span class="n">frameworkError</span> <span class="o">==</span> <span class="n">MediaPlayer</span><span class="o">.</span><span class="na">MEDIA_ERROR_NOT_VALID_FOR_PROGRESSIVE_PLAYBACK</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Log</span><span class="o">.</span><span class="na">e</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;TextureVideoView error. The video is streamed and its container is not valid for progressive playback i.e the video&#39;s index (e.g moov atom) is not at the start of the file.&quot;</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">messageId</span> <span class="o">=</span> <span class="n">R</span><span class="o">.</span><span class="na">string</span><span class="o">.</span><span class="na">play_progressive_error_message</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="k">return</span> <span class="n">messageId</span><span class="o">;</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This information can be accessed using two different listeners from the <code>MediaPlayer</code>, <a href="http://developer.android.com/reference/android/media/MediaPlayer.OnInfoListener.html">onInfoListener</a>
+and <a href="http://developer.android.com/reference/android/media/MediaPlayer.OnErrorListener.html">onErrorListener</a>. We are learning all this before actually displaying
+any content, and you thought this was going to be easy!</p>
+
+<p>Now we understand how the <code>MediaPlayer</code> works, the next step is to decide how are we going to display the video, what <code>View</code> are we going to use?</p>
+
+<h2>TextureView vs SurfaceView</h2>
+
+<p>The easiest way of displaying a video in Android is using a <a href="http://developer.android.com/reference/android/widget/VideoView.html">VideoView</a>. With very few
+lines of code you&rsquo;ll be able to display a video from a local source or from the internet and it will just play. <strong>This is a very good approach if you
+don&rsquo;t need any fancy stuff</strong>, no customisation or no callbacks. In our case, customisation was needed hence callbacks were needed and this solution was simply
+just not good enough.</p>
+
+<p>In the first place my thought was to extend <code>VideoView</code> and add some functionality but if you&rsquo;ve checked the <a href="https://android.googlesource.com/platform/frameworks/base/+/refs/heads/master/core/java/android/widget/VideoView.java">source code</a>,
+<code>VideoView</code> is extending <code>SurfaceView</code> and that has some limitations and constraints. <code>SurfaceView</code> provides a dedicated drawing surface embedded inside of a view hierarchy,
+the layout of which can be defined, in size and format. It also takes care of placing the surface at the correct location on the screen.</p>
+
+<p>The main limitation is that <strong>SurfaceView can&rsquo;t be animated, moved or transformed</strong>, that&rsquo;s because it&rsquo;s created in a separate window and not
+treated as a <code>View</code>. That was a big problem considering what we wanted to achieve so we turned our eyes
+towards <a href="http://developer.android.com/reference/android/view/TextureView.html">TextureView</a>.</p>
+
+<p>It&rsquo;s not all bad news for <code>SurfaceView</code>, <strong>Chrome</strong> used to use <code>TextureView</code> as the compositor target surface but they went back to using
+<code>SurfaceView</code>. These are the main reasons:</p>
+
+<ul>
+<li>Because of its invalidation and buffering behaviour, TextureView adds 1-3 extra frames of latency to display updates.</li>
+<li>TextureView is always composited using GL, whereas SurfaceTexture can be backed by a hardware overlay which uses less memory bandwidth and power.</li>
+<li>The internal buffer queue of TextureView can end up using more memory than a SurfaceView.</li>
+<li>We weren&rsquo;t really doing anything useful with the animation and transform capabilities of TextureView.</li>
+</ul>
+
+
+<p>Full discussion in Google Groups can be found <a href="https://groups.google.com/a/chromium.org/forum/#!topic/graphics-dev/Z0yE-PWQXc4">here</a></p>
+
+<p>We wanted to transform and animate that view so our choice was already made.</p>
+
+<h2>Custom Controls</h2>
+
+<p>So the video is going to be displayed in a <code>TextureView</code>, now we need a way of interacting with the video. Yes, the media player controls.</p>
+
+<p><img src="https://raw.githubusercontent.com/malmstein/Fenster/master/art/custom_controls.png"></p>
+
+<p>As you can see we decided to use a similar approach to what <strong>Youtube</strong> is doing, the custom controller occupies the whole screen making it very easy to use.
+Quite frankly this is much more appealing from my point of view. We&rsquo;ve all seen these designs for video players where the controller is aligned to the
+bottom of the screen (inspired in certain other platform) and I certainly believe this approach makes more sense.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'><span class="nt">&lt;com.malmstein.fenster.VideoTouchRoot</span>
+</span><span class='line'>  <span class="na">xmlns:android=</span><span class="s">&quot;http://schemas.android.com/apk/res/android&quot;</span>
+</span><span class='line'>  <span class="na">android:id=</span><span class="s">&quot;@+id/media_controller_touch_root&quot;</span>
+</span><span class='line'>  <span class="na">android:layout_width=</span><span class="s">&quot;match_parent&quot;</span>
+</span><span class='line'>  <span class="na">android:layout_height=</span><span class="s">&quot;match_parent&quot;</span>
+</span><span class='line'>  <span class="na">android:background=</span><span class="s">&quot;@color/default_bg&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>
+</span><span class='line'>....
+</span><span class='line'>
+</span><span class='line'><span class="nt">&lt;/com.malmstein.fenster.VideoTouchRoot&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The most important part of this custom controller is <strong>the root layout which is going to enable / disable the controller itself</strong>. That is the <code>VideoTouchRoot</code> and
+it&rsquo;s nothing else than a <code>FrameLayout</code> we put as a layout root to get notified about any screen touches. The <code>PlayerController</code> will set a listener and show or
+hide the view accordingly</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">VideoTouchRoot</span> <span class="n">touchRoot</span> <span class="o">=</span> <span class="o">(</span><span class="n">VideoTouchRoot</span><span class="o">)</span> <span class="n">v</span><span class="o">.</span><span class="na">findViewById</span><span class="o">(</span><span class="n">R</span><span class="o">.</span><span class="na">id</span><span class="o">.</span><span class="na">media_controller_touch_root</span><span class="o">);</span>
+</span><span class='line'><span class="n">touchRoot</span><span class="o">.</span><span class="na">setOnTouchReceiver</span><span class="o">(</span><span class="k">this</span><span class="o">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><strong>How does the PlayerController work?</strong></p>
+
+<p>Basically, the big part of the job is done when the <code>PlayerController</code> needs to be attached. It&rsquo;s the <code>TextureView</code> who takes care of this job, setting an anchor
+view which is the <code>PlayerController</code> itself.</p>
+
+<p>Once this view is anchored it&rsquo;s just a matter of setting listeners to all the events we want to track (<strong>Play</strong>/<strong>Pause</strong>/<strong>Seek</strong>) and handle the communication
+between the view and the <code>MediaPlayer</code>.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">public</span> <span class="kt">void</span> <span class="nf">setAnchorView</span><span class="o">(</span><span class="kd">final</span> <span class="n">View</span> <span class="n">view</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">mAnchor</span> <span class="o">=</span> <span class="n">view</span><span class="o">;</span>
+</span><span class='line'>    <span class="n">LayoutParams</span> <span class="n">frameParams</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">LayoutParams</span><span class="o">(</span>
+</span><span class='line'>            <span class="n">ViewGroup</span><span class="o">.</span><span class="na">LayoutParams</span><span class="o">.</span><span class="na">MATCH_PARENT</span><span class="o">,</span>
+</span><span class='line'>            <span class="n">ViewGroup</span><span class="o">.</span><span class="na">LayoutParams</span><span class="o">.</span><span class="na">MATCH_PARENT</span>
+</span><span class='line'>    <span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">removeAllViews</span><span class="o">();</span>
+</span><span class='line'>    <span class="n">View</span> <span class="n">v</span> <span class="o">=</span> <span class="n">makeControllerView</span><span class="o">();</span>
+</span><span class='line'>    <span class="n">addView</span><span class="o">(</span><span class="n">v</span><span class="o">,</span> <span class="n">frameParams</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>TextureVideoView</h2>
+
+<p>At this point we know how the controller is shown / hidden and which component is that view anchored to, but we are missing the big part of this puzzle
+which is the View who handles it all, the <code>TextureVideoView</code>.</p>
+
+<p>This view is the only one communicating with the <code>MediaPlayer</code>, which allows us to handle on the interaction between the controller and the player
+transparently to the other parts of the application. Going back to the initial state diagram, one can see that it would be very helpful to save
+the actual state of the player in order to know which steps can be followed. The <code>TextureVideoView</code> <strong>keeps track internally of that state</strong>.</p>
+
+<p>Another important aspect of the view consists in handling all the listeners that the <code>MediaPlayer</code> exposes</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">mMediaPlayer</span><span class="o">.</span><span class="na">setOnPreparedListener</span><span class="o">(</span><span class="n">mPreparedListener</span><span class="o">);</span>
+</span><span class='line'><span class="n">mMediaPlayer</span><span class="o">.</span><span class="na">setOnVideoSizeChangedListener</span><span class="o">(</span><span class="n">mSizeChangedListener</span><span class="o">);</span>
+</span><span class='line'><span class="n">mMediaPlayer</span><span class="o">.</span><span class="na">setOnCompletionListener</span><span class="o">(</span><span class="n">mCompletionListener</span><span class="o">);</span>
+</span><span class='line'><span class="n">mMediaPlayer</span><span class="o">.</span><span class="na">setOnErrorListener</span><span class="o">(</span><span class="n">mErrorListener</span><span class="o">);</span>
+</span><span class='line'><span class="n">mMediaPlayer</span><span class="o">.</span><span class="na">setOnInfoListener</span><span class="o">(</span><span class="n">mInfoListener</span><span class="o">);</span>
+</span><span class='line'><span class="n">mMediaPlayer</span><span class="o">.</span><span class="na">setOnBufferingUpdateListener</span><span class="o">(</span><span class="n">mBufferingUpdateListener</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">mMediaPlayer</span><span class="o">.</span><span class="na">setDataSource</span><span class="o">(</span><span class="n">getContext</span><span class="o">(),</span> <span class="n">mUri</span><span class="o">,</span> <span class="n">mHeaders</span><span class="o">);</span>
+</span><span class='line'><span class="n">mMediaPlayer</span><span class="o">.</span><span class="na">setSurface</span><span class="o">(</span><span class="k">new</span> <span class="nf">Surface</span><span class="o">(</span><span class="n">mSurfaceTexture</span><span class="o">));</span>
+</span><span class='line'><span class="n">mMediaPlayer</span><span class="o">.</span><span class="na">setAudioStreamType</span><span class="o">(</span><span class="n">AudioManager</span><span class="o">.</span><span class="na">STREAM_MUSIC</span><span class="o">);</span>
+</span><span class='line'><span class="n">mMediaPlayer</span><span class="o">.</span><span class="na">setScreenOnWhilePlaying</span><span class="o">(</span><span class="kc">true</span><span class="o">);</span>
+</span><span class='line'><span class="n">mMediaPlayer</span><span class="o">.</span><span class="na">prepareAsync</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">mCurrentState</span> <span class="o">=</span> <span class="n">STATE_PREPARING</span><span class="o">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>As you can see, there is a big chunk of listeners to be set here, not the nicest looking part but the most helpful of all. Not only we&rsquo;ve set
+all the listeners but also created the <a href="http://developer.android.com/reference/android/graphics/SurfaceTexture.html">SurfaceTexture</a> <strong>where the video
+will be displayed</strong>, set the DataSource with the video information and last but not least important, asked the <code>MediaPlayer</code> to prepare itself in order
+to start playing the video.</p>
+
+<p>Important here not to call <code>prepare()</code> but use <code>prepareAsync()</code> instead. As you can imagine the <code>prepare()</code> method is <strong>run in the UI thread</strong> which will block
+the application, by using the <code>onPreparedListener</code> we&rsquo;ll be notified when the <code>MediaPlayer</code> can start playing the video. It&rsquo;s just another listener and
+we love them, don&rsquo;t we?</p>
+
+<p><strong>Notify when the video is playing</strong></p>
+
+<p>From all those listeners that we&rsquo;ve set earlier, perhaps the one which tells us more about the <code>MediaPlayer</code> status is the <code>onInfoListener()</code>:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="kd">final</span> <span class="n">OnInfoListener</span> <span class="n">onInfoToPlayStateListener</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">OnInfoListener</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nd">@Override</span>
+</span><span class='line'>  <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">onInfo</span><span class="o">(</span><span class="kd">final</span> <span class="n">MediaPlayer</span> <span class="n">mp</span><span class="o">,</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">what</span><span class="o">,</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">extra</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">if</span> <span class="o">(</span><span class="n">noPlayStateListener</span><span class="o">())</span> <span class="o">{</span>
+</span><span class='line'>          <span class="k">return</span> <span class="kc">false</span><span class="o">;</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">if</span> <span class="o">(</span><span class="n">MediaPlayer</span><span class="o">.</span><span class="na">MEDIA_INFO_VIDEO_RENDERING_START</span> <span class="o">==</span> <span class="n">what</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="n">onPlayStateListener</span><span class="o">.</span><span class="na">onFirstVideoFrameRendered</span><span class="o">();</span>
+</span><span class='line'>          <span class="n">onPlayStateListener</span><span class="o">.</span><span class="na">onPlay</span><span class="o">();</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>      <span class="k">if</span> <span class="o">(</span><span class="n">MediaPlayer</span><span class="o">.</span><span class="na">MEDIA_INFO_BUFFERING_START</span> <span class="o">==</span> <span class="n">what</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="n">onPlayStateListener</span><span class="o">.</span><span class="na">onBuffer</span><span class="o">();</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>      <span class="k">if</span> <span class="o">(</span><span class="n">MediaPlayer</span><span class="o">.</span><span class="na">MEDIA_INFO_BUFFERING_END</span> <span class="o">==</span> <span class="n">what</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="n">onPlayStateListener</span><span class="o">.</span><span class="na">onPlay</span><span class="o">();</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">return</span> <span class="kc">false</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>These three flags give us vital information, they will tell us <strong>when the first frame of the video starts to play</strong>, when the <strong>MediaPlayer starts buffering</strong> and
+when the <strong>video is playing again after buffering</strong>. Finally all this information will be sent to the PlayerController in order to show / hide the controls
+and the loading view.</p>
+
+<h2>Introducing Fenster</h2>
+
+<p>To wrap things up, it&rsquo;s always better to have a project to look into it. That&rsquo;s why I&rsquo;ve created <a href="https://github.com/malmstein/fenster">Fenster</a>, a library
+where you&rsquo;ll find all these views we&rsquo;ve been talking about in this post and a nice <strong>demo project</strong> to show it all.</p>
+
+<p><img src="https://raw.githubusercontent.com/malmstein/Fenster/master/art/video_example.gif"></p>
+
+<p>As always, <strong>fork it</strong>, <strong>use it</strong>, and if you want to contribute <a href="https://github.com/malmstein/fenster/pulls">pull requests</a> are more than welcome!</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Gonzalez</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2014-08-09T20:00:00+01:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:00 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/fenster/'>fenster</a>, <a class='category' href='/blog/categories/mediaplayer/'>mediaplayer</a>, <a class='category' href='/blog/categories/novoda/'>novoda</a>, <a class='category' href='/blog/categories/textureview/'>textureview</a>, <a class='category' href='/blog/categories/video/'>video</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://malmstein.github.io/blog/2014/08/09/how-to-use-a-textureview-to-display-a-video-with-custom-media-player-controls/" data-via="dggonzalez" data-counturl="http://malmstein.github.io/blog/2014/08/09/how-to-use-a-textureview-to-display-a-video-with-custom-media-player-controls/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/07/26/one-month-using-a-standing-desk/" title="Previous Post: One month using a standing desk">&laquo; One month using a standing desk</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2014/09/21/control-the-media-player-using-gestures/" title="Next Post: Using Gestures to control the Media Player">Using Gestures to control the Media Player &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/09/21/control-the-media-player-using-gestures/">Using Gestures to Control the Media Player</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/09/how-to-use-a-textureview-to-display-a-video-with-custom-media-player-controls/">How to Use a TextureView to Display a Video With Custom Media Player Controls</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/07/26/one-month-using-a-standing-desk/">One Month Using a Standing Desk</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/07/09/your-forms-dont-need-to-be-ugly-part-3/">Your Forms Don&#8217;t Need to Be Ugly Part 3</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/06/15/your-forms-dont-need-to-be-ugly-part-2/">Your Forms Don&#8217;t Need to Be Ugly Part 2</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating&#8230;</li>
+  </ul>
+  
+  <a href="https://github.com/malmstein">@malmstein</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'malmstein',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/+DavidGonzálezNovoda?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - David Gonzalez -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'malmstein';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://malmstein.github.io/blog/2014/08/09/how-to-use-a-textureview-to-display-a-video-with-custom-media-player-controls/';
+        var disqus_url = 'http://malmstein.github.io/blog/2014/08/09/how-to-use-a-textureview-to-display-a-video-with-custom-media-player-controls/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

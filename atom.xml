@@ -1,0 +1,1450 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[David Gonzalez]]></title>
+  <link href="http://malmstein.github.io/atom.xml" rel="self"/>
+  <link href="http://malmstein.github.io/"/>
+  <updated>2014-09-22T18:19:20+01:00</updated>
+  <id>http://malmstein.github.io/</id>
+  <author>
+    <name><![CDATA[David Gonzalez]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Using Gestures to Control the Media Player]]></title>
+    <link href="http://malmstein.github.io/blog/2014/09/21/control-the-media-player-using-gestures/"/>
+    <updated>2014-09-21T19:24:59+01:00</updated>
+    <id>http://malmstein.github.io/blog/2014/09/21/control-the-media-player-using-gestures</id>
+    <content type="html"><![CDATA[<p>In the previous post we explained a way of displaying a <a href="" title="http://www.malmstein.com/blog/2014/08/09/how-to-use-a-textureview-to-display-a-video-with-custom-media-player-controls/">customised Media Player controller</a>,
+which as we saw, it&rsquo;s very useful if we need customised actions or UI for that controller.</p>
+
+<p>This time we want to go a step forward and introduce a new way of interacting with the Media Player.
+The idea is to use gestures in order to lower or raise the volume, seek forward and backwards
+and to skip the video for 30 seconds.</p>
+
+<p>I&rsquo;m a big fan of <a href="" title="https://play.google.com/store/apps/details?id=com.mxtech.videoplayer.ad">MX Player</a> and
+always wanted to implement the gesture detection that they introduced.</p>
+
+<p><img src="https://raw.githubusercontent.com/malmstein/Fenster/master/art/fenster_gesture.gif"></p>
+
+<!-- more -->
+
+
+<p>In order to achieve this, the first thing we need to understand is how the gestures
+are detected and how we can use them in our benefit.</p>
+
+<p>When one or more fingers are placed on the screen, the callback <code>onTouchEvent()</code> is triggered on
+the View that received the touch events. What&rsquo;s important here is to understand that a gesture
+is a sequence of touch events and each one of them will fire <code>onTouchEvent()</code>.</p>
+
+<p>A gesture starts when the user first touches the screen, continues as the system tracks the
+position of the user&rsquo;s finger(s), and ends by capturing the final event of the user&rsquo;s fingers
+leaving the screen. Throughout this interaction, the <a href="" title="http://developer.android.com/reference/android/view/MotionEvent.html">MotionEvent</a>
+delivered to <code>onTouchEvent()</code> provides the details of every interaction.</p>
+
+<p><img src="https://raw.githubusercontent.com/malmstein/Fenster/master/art/basic_multitouch.gif"></p>
+
+<h2>Understanding MotionEvent</h2>
+
+<p>Android uses <code>MotionEvent</code> to report movements, providing an action and a set of axis values. <strong>Each action
+describes the state change occurred</strong>, such as pointer going down, up or moving. Another very important
+aspect of <code>MotionEvent</code> is that not only describes one movement but can also <strong>describe multi-touch events</strong>.
+This is particularly important if we are trying to identify multi-touch gestures such as
+scrolling with two fingers or two finger double tap.</p>
+
+<h2>Gesture Detector</h2>
+
+<p>Now that we know how events are described on Android, it&rsquo;s time to understand how gestures are
+detected and how to apply it to our purpose. For that matter, Android provides the
+<a href="" title="http://developer.android.com/reference/android/view/GestureDetector.html">GestureDetector</a></p>
+
+<p>There are two different ways of intercepting gestures on Android. One can use
+the <a href="" title="http://developer.android.com/reference/android/view/GestureDetector.SimpleOnGestureListener.html">SimpleGestureListener</a> class,
+which wraps around the interfaces <a href="" title="http://developer.android.com/reference/android/view/GestureDetector.OnGestureListener.html">OnGestureListener</a>
+and <a href="" title="http://developer.android.com/reference/android/view/GestureDetector.OnDoubleTapListener.html">OnDoubleTapListener</a>.
+Think about it as a convenience class to extend when you only want to listen for a subset
+of all the gestures.</p>
+
+<p>The other approach is to implement the interfaces that are more interesting to you, since
+we here to play, that&rsquo;s the one we’ll follow.</p>
+
+<p>As you can see there are several events that we can intercept:</p>
+
+<ul>
+<li> <code>onDown()</code> : Notified when a tap occurs with the event that triggered it. This will be triggered immediately for every down event. All other events should be preceded by this.</li>
+<li> <code>onShowPress()</code>: The user has performed a down {@link MotionEvent} and not performed a move or up yet.</li>
+<li> <code>onSingleTapUp()</code>: Notified when a tap occurs with the up that triggered it.</li>
+<li> <code>onScroll()</code>: Notified when a scroll occurs with the initial on down and the current move. The distance in x and y is also supplied for convenience.</li>
+<li> <code>onLongPress()</code>: Notified when a long press occurs with the initial on down that trigged it.</li>
+<li> <code>onFling()</code>: Notified of a fling event when it occurs with the initial on down and the matching up. The calculated velocity is supplied along the x and y axis in pixels per second.</li>
+</ul>
+
+
+<p><img src="https://raw.githubusercontent.com/malmstein/Fenster/master/art/basic_gesture.gif"></p>
+
+<h2>The Gesture View</h2>
+
+<p>Now that we have all the tools and we understand how this whole thing works, let&rsquo;s get our hands
+dirty. Our approach will be to add a <code>View</code> to our <code>PlayerController</code>, this view will handle
+all the gestures and delegate the interaction of those to the <code>PlayerController</code>.</p>
+
+<p>All we need to do here is to send all the intercepted events coming from the
+<code>FensterGestureControllerView</code> to the <code>GestureDetector</code> via the <code>onTouchEvent()</code>.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">onTouchEvent</span><span class="o">(</span><span class="n">MotionEvent</span> <span class="n">event</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">gestureDetector</span><span class="o">.</span><span class="na">onTouchEvent</span><span class="o">(</span><span class="n">event</span><span class="o">);</span>
+</span><span class='line'>    <span class="k">return</span> <span class="kd">super</span><span class="o">.</span><span class="na">onTouchEvent</span><span class="o">(</span><span class="n">event</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>As we said earlier, the <code>GestureDetector</code> is the one in charge of detecting all these events, in
+combination with the &lsquo;GestureListener&rsquo;</p>
+
+<h2>The Gesture and Events listeners</h2>
+
+<p>We are only interested in some of the gestures that can be detected, in our case it&rsquo;s all described
+in the following interface</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">FensterEventsListener</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kt">void</span> <span class="nf">onTap</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kt">void</span> <span class="nf">onHorizontalScroll</span><span class="o">(</span><span class="n">MotionEvent</span> <span class="n">event</span><span class="o">,</span> <span class="kt">float</span> <span class="n">delta</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kt">void</span> <span class="nf">onVerticalScroll</span><span class="o">(</span><span class="n">MotionEvent</span> <span class="n">event</span><span class="o">,</span> <span class="kt">float</span> <span class="n">delta</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kt">void</span> <span class="nf">onSwipeRight</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kt">void</span> <span class="nf">onSwipeLeft</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kt">void</span> <span class="nf">onSwipeBottom</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kt">void</span> <span class="nf">onSwipeTop</span><span class="o">();</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Once we detect one of these events, the <code>MediaPlayerController</code> will react by changing the
+progress bar, raising the volume or skipping. Pretty straight forward right? Let&rsquo;s actually see
+where the magic happens, the gesture detection.</p>
+
+<p>As said earlier, the <a href="" title="http://developer.android.com/reference/android/view/GestureDetector.OnGestureListener.html">OnGestureListener</a>
+provides the interfaces we are interested in, let&rsquo;s start by detecting the <strong>Horizontal</strong> and <strong>Vertical</strong> scrolls.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">onScroll</span><span class="o">(</span><span class="n">MotionEvent</span> <span class="n">e1</span><span class="o">,</span> <span class="n">MotionEvent</span> <span class="n">e2</span><span class="o">,</span> <span class="kt">float</span> <span class="n">distanceX</span><span class="o">,</span> <span class="kt">float</span> <span class="n">distanceY</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">Log</span><span class="o">.</span><span class="na">i</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;Scroll&quot;</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="kt">float</span> <span class="n">deltaY</span> <span class="o">=</span> <span class="n">e2</span><span class="o">.</span><span class="na">getY</span><span class="o">()</span> <span class="o">-</span> <span class="n">e1</span><span class="o">.</span><span class="na">getY</span><span class="o">();</span>
+</span><span class='line'>        <span class="kt">float</span> <span class="n">deltaX</span> <span class="o">=</span> <span class="n">e2</span><span class="o">.</span><span class="na">getX</span><span class="o">()</span> <span class="o">-</span> <span class="n">e1</span><span class="o">.</span><span class="na">getX</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">Math</span><span class="o">.</span><span class="na">abs</span><span class="o">(</span><span class="n">deltaX</span><span class="o">)</span> <span class="o">&gt;</span> <span class="n">Math</span><span class="o">.</span><span class="na">abs</span><span class="o">(</span><span class="n">deltaY</span><span class="o">))</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">if</span> <span class="o">(</span><span class="n">Math</span><span class="o">.</span><span class="na">abs</span><span class="o">(</span><span class="n">deltaX</span><span class="o">)</span> <span class="o">&gt;</span> <span class="n">SWIPE_THRESHOLD</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>                <span class="n">listener</span><span class="o">.</span><span class="na">onHorizontalScroll</span><span class="o">(</span><span class="n">e2</span><span class="o">,</span> <span class="n">deltaX</span><span class="o">);</span>
+</span><span class='line'>                <span class="k">if</span> <span class="o">(</span><span class="n">deltaX</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>                    <span class="n">Log</span><span class="o">.</span><span class="na">i</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;Slide right&quot;</span><span class="o">);</span>
+</span><span class='line'>                <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>                    <span class="n">Log</span><span class="o">.</span><span class="na">i</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;Slide left&quot;</span><span class="o">);</span>
+</span><span class='line'>                <span class="o">}</span>
+</span><span class='line'>            <span class="o">}</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">if</span> <span class="o">(</span><span class="n">Math</span><span class="o">.</span><span class="na">abs</span><span class="o">(</span><span class="n">deltaY</span><span class="o">)</span> <span class="o">&gt;</span> <span class="n">SWIPE_THRESHOLD</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>                <span class="n">listener</span><span class="o">.</span><span class="na">onVerticalScroll</span><span class="o">(</span><span class="n">e2</span><span class="o">,</span> <span class="n">deltaY</span><span class="o">);</span>
+</span><span class='line'>                <span class="k">if</span> <span class="o">(</span><span class="n">deltaY</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>                    <span class="n">Log</span><span class="o">.</span><span class="na">i</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;Slide down&quot;</span><span class="o">);</span>
+</span><span class='line'>                <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>                    <span class="n">Log</span><span class="o">.</span><span class="na">i</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;Slide up&quot;</span><span class="o">);</span>
+</span><span class='line'>                <span class="o">}</span>
+</span><span class='line'>            <span class="o">}</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>        <span class="k">return</span> <span class="kc">false</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The <code>onScroll()</code> interface provides the initial on down <code>MotionEvent</code> and the current one, using
+the axis values we can detect the direction towards where the scrolling movement is going
+and calculate the delta of the movement.</p>
+
+<p>Note the threshold value, that needs to be there in order to filter movements. We don&rsquo;t want to
+be confused with small movements or flings, only the gestures which have moved a certain
+distance can be considered as scrolls.</p>
+
+<p>It&rsquo;s also important to understand the difference between scrolls and flings since they are also
+going to be treated differently. A <strong>scroll is a continuos movement</strong> like the one you&rsquo;ll use to
+navigate through a timeline, as opposed to a <strong>fling which is intentionally a short and fast movement</strong>
+which one will use to navigate horizontally through a view pager.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">onFling</span><span class="o">(</span><span class="n">MotionEvent</span> <span class="n">e1</span><span class="o">,</span> <span class="n">MotionEvent</span> <span class="n">e2</span><span class="o">,</span> <span class="kt">float</span> <span class="n">velocityX</span><span class="o">,</span> <span class="kt">float</span> <span class="n">velocityY</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="c1">// Fling event occurred.  Notification of this one happens after an &quot;up&quot; event.</span>
+</span><span class='line'>        <span class="n">Log</span><span class="o">.</span><span class="na">i</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;Fling&quot;</span><span class="o">);</span>
+</span><span class='line'>        <span class="kt">boolean</span> <span class="n">result</span> <span class="o">=</span> <span class="kc">false</span><span class="o">;</span>
+</span><span class='line'>        <span class="k">try</span> <span class="o">{</span>
+</span><span class='line'>            <span class="kt">float</span> <span class="n">diffY</span> <span class="o">=</span> <span class="n">e2</span><span class="o">.</span><span class="na">getY</span><span class="o">()</span> <span class="o">-</span> <span class="n">e1</span><span class="o">.</span><span class="na">getY</span><span class="o">();</span>
+</span><span class='line'>            <span class="kt">float</span> <span class="n">diffX</span> <span class="o">=</span> <span class="n">e2</span><span class="o">.</span><span class="na">getX</span><span class="o">()</span> <span class="o">-</span> <span class="n">e1</span><span class="o">.</span><span class="na">getX</span><span class="o">();</span>
+</span><span class='line'>            <span class="k">if</span> <span class="o">(</span><span class="n">Math</span><span class="o">.</span><span class="na">abs</span><span class="o">(</span><span class="n">diffX</span><span class="o">)</span> <span class="o">&gt;</span> <span class="n">Math</span><span class="o">.</span><span class="na">abs</span><span class="o">(</span><span class="n">diffY</span><span class="o">))</span> <span class="o">{</span>
+</span><span class='line'>                <span class="k">if</span> <span class="o">(</span><span class="n">Math</span><span class="o">.</span><span class="na">abs</span><span class="o">(</span><span class="n">diffX</span><span class="o">)</span> <span class="o">&gt;</span> <span class="n">SWIPE_THRESHOLD</span> <span class="o">&amp;&amp;</span> <span class="n">Math</span><span class="o">.</span><span class="na">abs</span><span class="o">(</span><span class="n">velocityX</span><span class="o">)</span> <span class="o">&gt;</span> <span class="n">minFlingVelocity</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>                    <span class="k">if</span> <span class="o">(</span><span class="n">diffX</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>                        <span class="n">listener</span><span class="o">.</span><span class="na">onSwipeRight</span><span class="o">();</span>
+</span><span class='line'>                    <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>                        <span class="n">listener</span><span class="o">.</span><span class="na">onSwipeLeft</span><span class="o">();</span>
+</span><span class='line'>                    <span class="o">}</span>
+</span><span class='line'>                <span class="o">}</span>
+</span><span class='line'>                <span class="n">result</span> <span class="o">=</span> <span class="kc">true</span><span class="o">;</span>
+</span><span class='line'>            <span class="o">}</span> <span class="k">else</span> <span class="nf">if</span> <span class="o">(</span><span class="n">Math</span><span class="o">.</span><span class="na">abs</span><span class="o">(</span><span class="n">diffY</span><span class="o">)</span> <span class="o">&gt;</span> <span class="n">SWIPE_THRESHOLD</span> <span class="o">&amp;&amp;</span> <span class="n">Math</span><span class="o">.</span><span class="na">abs</span><span class="o">(</span><span class="n">velocityY</span><span class="o">)</span> <span class="o">&gt;</span> <span class="n">minFlingVelocity</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>                <span class="k">if</span> <span class="o">(</span><span class="n">diffY</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>                    <span class="n">listener</span><span class="o">.</span><span class="na">onSwipeBottom</span><span class="o">();</span>
+</span><span class='line'>                <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>                    <span class="n">listener</span><span class="o">.</span><span class="na">onSwipeTop</span><span class="o">();</span>
+</span><span class='line'>                <span class="o">}</span>
+</span><span class='line'>            <span class="o">}</span>
+</span><span class='line'>            <span class="n">result</span> <span class="o">=</span> <span class="kc">true</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">Exception</span> <span class="n">exception</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">exception</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">result</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>There is a new constant introduced here, the <code>minFlingVelocity</code>. Since the fling is considered to
+be a fast movement, we need to make sure that the motion event velocity is fast enough.</p>
+
+<p>How do we get these constant values? Android conveniently has a  <a href="" title="http://developer.android.com/reference/android/view/ViewConfiguration.html">ViewConfiguration</a>
+class with standard constants used in the UI for timeouts, sizes, and distances.</p>
+
+<h2>The Controller View</h2>
+
+<p>Ultimately, it will be the player controller the guy who will react to the events.
+That&rsquo;s why we delegate all the responsibility to the gesture listener. We attach the listener
+from the player controller to the listener like this:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setFensterEventsListener</span><span class="o">(</span><span class="n">FensterEventsListener</span> <span class="n">listener</span><span class="o">){</span>
+</span><span class='line'>        <span class="n">gestureDetector</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">GestureDetector</span><span class="o">(</span><span class="n">getContext</span><span class="o">(),</span>
+</span><span class='line'>                          <span class="k">new</span> <span class="nf">FensterGestureListener</span><span class="o">(</span><span class="n">listener</span><span class="o">,</span>
+</span><span class='line'>                              <span class="n">ViewConfiguration</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">getContext</span><span class="o">())));</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Acting on the Media Player</h2>
+
+<p>Finally, we have all the pieces together. We are now able to detect when the user is touching
+the screen and we can also detect the type of gesture that is happening.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onHorizontalScroll</span><span class="o">(</span><span class="n">MotionEvent</span> <span class="n">event</span><span class="o">,</span> <span class="kt">float</span> <span class="n">delta</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">updateVideoProgressBar</span><span class="o">(</span><span class="n">delta</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">private</span> <span class="kt">void</span> <span class="nf">updateVideoProgressBar</span><span class="o">(</span><span class="kt">float</span> <span class="n">delta</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">mSeekListener</span><span class="o">.</span><span class="na">onProgressChanged</span><span class="o">(</span><span class="n">mProgress</span><span class="o">,</span>
+</span><span class='line'>            <span class="n">extractHorizontalDeltaScale</span><span class="o">(</span><span class="n">delta</span><span class="o">,</span> <span class="n">mProgress</span><span class="o">),</span> <span class="kc">true</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>For this first attempt we will only act on the video progress bar, which is a pretty straigh
+forward thing to do since we already have a <code>seekListener</code> which acts on the media player. The
+only thing we need to do is scaling the user movement compared to the <a href="" title="http://developer.android.com/reference/android/widget/SeekBar.html">SeekBar</a>.</p>
+
+<p>The interface is giving us a <strong>delta</strong>, which is the amount of pixels of the gesture. We are
+taking as reference the whole <code>View</code> width, that way when the user scrolls the whole width of
+the screen it will also seek through the whole video in a 1:1 scale. The last thing we
+need to take into consideration the <strong>MAX</strong> parameter applied to the <code>SeekBar</code>.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="kd">private</span> <span class="kt">int</span> <span class="nf">extractDeltaScale</span><span class="o">(</span><span class="kt">int</span> <span class="n">availableSpace</span><span class="o">,</span> <span class="kt">float</span> <span class="n">deltaX</span><span class="o">,</span> <span class="n">SeekBar</span> <span class="n">seekbar</span><span class="o">){</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="o">(</span><span class="kt">int</span><span class="o">)</span> <span class="n">deltaX</span><span class="o">;</span>
+</span><span class='line'>        <span class="kt">float</span> <span class="n">scale</span><span class="o">;</span>
+</span><span class='line'>        <span class="kt">float</span> <span class="n">progress</span> <span class="o">=</span> <span class="n">seekbar</span><span class="o">.</span><span class="na">getProgress</span><span class="o">();</span>
+</span><span class='line'>        <span class="kd">final</span> <span class="kt">int</span> <span class="n">max</span> <span class="o">=</span> <span class="n">seekbar</span><span class="o">.</span><span class="na">getMax</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">x</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="c1">// scrolling back</span>
+</span><span class='line'>            <span class="n">scale</span> <span class="o">=</span> <span class="o">(</span><span class="kt">float</span><span class="o">)</span> <span class="o">(</span><span class="n">x</span><span class="o">)</span> <span class="o">/</span> <span class="o">(</span><span class="kt">float</span><span class="o">)</span> <span class="o">(</span><span class="n">max</span> <span class="o">-</span> <span class="n">availableSpace</span><span class="o">)</span> <span class="o">;</span>
+</span><span class='line'>            <span class="n">progress</span> <span class="o">=</span> <span class="n">progress</span> <span class="o">-</span> <span class="o">(</span><span class="n">scale</span> <span class="o">*</span> <span class="n">progress</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>            <span class="c1">// scrolling forwards</span>
+</span><span class='line'>            <span class="n">scale</span> <span class="o">=</span> <span class="o">(</span><span class="kt">float</span><span class="o">)</span> <span class="o">(</span><span class="n">x</span><span class="o">)</span> <span class="o">/</span> <span class="o">(</span><span class="kt">float</span><span class="o">)</span> <span class="n">availableSpace</span><span class="o">;</span>
+</span><span class='line'>            <span class="n">progress</span> <span class="o">+=</span> <span class="n">scale</span> <span class="o">*</span> <span class="n">max</span><span class="o">;</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">return</span> <span class="o">(</span><span class="kt">int</span><span class="o">)</span> <span class="n">progress</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Once this is all computed we can now scroll back and forth across all the video timeline.</p>
+
+<p><img src="https://raw.githubusercontent.com/malmstein/Fenster/master/art/fenster_gesture.gif"></p>
+
+<h2>Further reading</h2>
+
+<p>If you want to experience further in detecting gestures and multitouch events, don’t
+hesitate in importing two projects from the SDK samples: <code>BasicGestureDetect</code> and <code>BasicMultitouch</code>.
+Yeah, they are basic, but it establishes the foundations of what we are going to do here.</p>
+
+<p>There is also a pretty good training document about <a href="" title="http://developer.android.com/training/gestures/detector.html">Gesture Detection</a> in
+the Android Developer website.</p>
+
+<h2>Fenster Library update</h2>
+
+<p>In the next post we&rsquo;ll use the same techniques to act on several other aspects of the
+<code>MediaPlayer</code>. In the meantime, the <a href="" title="https://github.com/malmstein/fenster">Fenster</a> library has
+been updated with all the parts of this post and the demo project also contains an example of
+gesture detection against the <code>MediaPlayer</code>.</p>
+
+<p>As always, all feedback received is more than welcome!</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[How to Use a TextureView to Display a Video With Custom Media Player Controls]]></title>
+    <link href="http://malmstein.github.io/blog/2014/08/09/how-to-use-a-textureview-to-display-a-video-with-custom-media-player-controls/"/>
+    <updated>2014-08-09T20:00:00+01:00</updated>
+    <id>http://malmstein.github.io/blog/2014/08/09/how-to-use-a-textureview-to-display-a-video-with-custom-media-player-controls</id>
+    <content type="html"><![CDATA[<p>For the past months at <a href="http://www.novoda.com">Novoda</a> I&rsquo;ve been working on several video applications <a href="https://play.google.com/store/apps/details?id=tv.arte.plus7">ARTE</a>,
+<a href="https://play.google.com/store/apps/details?id=com.novoda.dch">Digital Concert Hall</a> and <a href="https://play.google.com/store/apps/details?id=com.mubi">MUBI</a>.</p>
+
+<p>As you might figure by now, the common feature of these applications is to display a video with customised media player controls. I thought it would be
+a good time to share some knowledge and show some ideas around video playing on Android. A couple of months ago I a <a href="https://speakerdeck.com/malmstein/streaming-the-droid">gave a talk</a>
+ about it at <strong>Droidcon Berlin</strong> showing some code but I never had the proper amount of time to make it into a library.</p>
+
+<!-- more -->
+
+
+<h2>Media Player lifecycle</h2>
+
+<p>The first thing we need to understand before playing videos or audio is the lifecycle of the <a href="http://developer.android.com/reference/android/media/MediaPlayer.html">Media Player</a></p>
+
+<p><img src="http://developer.android.com/images/mediaplayer_state_diagram.gif"></p>
+
+<p>As you see it&rsquo;s pretty straight forward, <strong>there are only 10 different states</strong>&hellip;</p>
+
+<p>The most important piece of information that can be extracted from this diagram is that one needs to be very strict regarding the
+behaviour of the <code>MediaPlayer</code>. It&rsquo;s very easy to follow the steps in the wrong order which will lead to frustration since debug information that the
+<code>MediaPlayer</code> provides is pretty bad:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="kd">static</span> <span class="kt">int</span> <span class="nf">getErrorMessage</span><span class="o">(</span><span class="kd">final</span> <span class="kt">int</span> <span class="n">frameworkError</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">messageId</span> <span class="o">=</span> <span class="n">R</span><span class="o">.</span><span class="na">string</span><span class="o">.</span><span class="na">play_error_message</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">frameworkError</span> <span class="o">==</span> <span class="n">MediaPlayer</span><span class="o">.</span><span class="na">MEDIA_ERROR_IO</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Log</span><span class="o">.</span><span class="na">e</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;TextureVideoView error. File or network related operation errors.&quot;</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span> <span class="k">else</span> <span class="nf">if</span> <span class="o">(</span><span class="n">frameworkError</span> <span class="o">==</span> <span class="n">MediaPlayer</span><span class="o">.</span><span class="na">MEDIA_ERROR_MALFORMED</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Log</span><span class="o">.</span><span class="na">e</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;TextureVideoView error. Bitstream is not conforming to the related coding standard or file spec.&quot;</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span> <span class="k">else</span> <span class="nf">if</span> <span class="o">(</span><span class="n">frameworkError</span> <span class="o">==</span> <span class="n">MediaPlayer</span><span class="o">.</span><span class="na">MEDIA_ERROR_SERVER_DIED</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Log</span><span class="o">.</span><span class="na">e</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;TextureVideoView error. Media server died. In this case, the application must release the MediaPlayer object and instantiate a new one.&quot;</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span> <span class="k">else</span> <span class="nf">if</span> <span class="o">(</span><span class="n">frameworkError</span> <span class="o">==</span> <span class="n">MediaPlayer</span><span class="o">.</span><span class="na">MEDIA_ERROR_TIMED_OUT</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Log</span><span class="o">.</span><span class="na">e</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;TextureVideoView error. Some operation takes too long to complete, usually more than 3-5 seconds.&quot;</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span> <span class="k">else</span> <span class="nf">if</span> <span class="o">(</span><span class="n">frameworkError</span> <span class="o">==</span> <span class="n">MediaPlayer</span><span class="o">.</span><span class="na">MEDIA_ERROR_UNKNOWN</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Log</span><span class="o">.</span><span class="na">e</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;TextureVideoView error. Unspecified media player error.&quot;</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span> <span class="k">else</span> <span class="nf">if</span> <span class="o">(</span><span class="n">frameworkError</span> <span class="o">==</span> <span class="n">MediaPlayer</span><span class="o">.</span><span class="na">MEDIA_ERROR_UNSUPPORTED</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Log</span><span class="o">.</span><span class="na">e</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;TextureVideoView error. Bitstream is conforming to the related coding standard or file spec, but the media framework does not support the feature.&quot;</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span> <span class="k">else</span> <span class="nf">if</span> <span class="o">(</span><span class="n">frameworkError</span> <span class="o">==</span> <span class="n">MediaPlayer</span><span class="o">.</span><span class="na">MEDIA_ERROR_NOT_VALID_FOR_PROGRESSIVE_PLAYBACK</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Log</span><span class="o">.</span><span class="na">e</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;TextureVideoView error. The video is streamed and its container is not valid for progressive playback i.e the video&#39;s index (e.g moov atom) is not at the start of the file.&quot;</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">messageId</span> <span class="o">=</span> <span class="n">R</span><span class="o">.</span><span class="na">string</span><span class="o">.</span><span class="na">play_progressive_error_message</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="k">return</span> <span class="n">messageId</span><span class="o">;</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This information can be accessed using two different listeners from the <code>MediaPlayer</code>, <a href="http://developer.android.com/reference/android/media/MediaPlayer.OnInfoListener.html">onInfoListener</a>
+and <a href="http://developer.android.com/reference/android/media/MediaPlayer.OnErrorListener.html">onErrorListener</a>. We are learning all this before actually displaying
+any content, and you thought this was going to be easy!</p>
+
+<p>Now we understand how the <code>MediaPlayer</code> works, the next step is to decide how are we going to display the video, what <code>View</code> are we going to use?</p>
+
+<h2>TextureView vs SurfaceView</h2>
+
+<p>The easiest way of displaying a video in Android is using a <a href="http://developer.android.com/reference/android/widget/VideoView.html">VideoView</a>. With very few
+lines of code you&rsquo;ll be able to display a video from a local source or from the internet and it will just play. <strong>This is a very good approach if you
+don&rsquo;t need any fancy stuff</strong>, no customisation or no callbacks. In our case, customisation was needed hence callbacks were needed and this solution was simply
+just not good enough.</p>
+
+<p>In the first place my thought was to extend <code>VideoView</code> and add some functionality but if you&rsquo;ve checked the <a href="https://android.googlesource.com/platform/frameworks/base/+/refs/heads/master/core/java/android/widget/VideoView.java">source code</a>,
+<code>VideoView</code> is extending <code>SurfaceView</code> and that has some limitations and constraints. <code>SurfaceView</code> provides a dedicated drawing surface embedded inside of a view hierarchy,
+the layout of which can be defined, in size and format. It also takes care of placing the surface at the correct location on the screen.</p>
+
+<p>The main limitation is that <strong>SurfaceView can&rsquo;t be animated, moved or transformed</strong>, that&rsquo;s because it&rsquo;s created in a separate window and not
+treated as a <code>View</code>. That was a big problem considering what we wanted to achieve so we turned our eyes
+towards <a href="http://developer.android.com/reference/android/view/TextureView.html">TextureView</a>.</p>
+
+<p>It&rsquo;s not all bad news for <code>SurfaceView</code>, <strong>Chrome</strong> used to use <code>TextureView</code> as the compositor target surface but they went back to using
+<code>SurfaceView</code>. These are the main reasons:</p>
+
+<ul>
+<li>Because of its invalidation and buffering behaviour, TextureView adds 1-3 extra frames of latency to display updates.</li>
+<li>TextureView is always composited using GL, whereas SurfaceTexture can be backed by a hardware overlay which uses less memory bandwidth and power.</li>
+<li>The internal buffer queue of TextureView can end up using more memory than a SurfaceView.</li>
+<li>We weren&rsquo;t really doing anything useful with the animation and transform capabilities of TextureView.</li>
+</ul>
+
+
+<p>Full discussion in Google Groups can be found <a href="https://groups.google.com/a/chromium.org/forum/#!topic/graphics-dev/Z0yE-PWQXc4">here</a></p>
+
+<p>We wanted to transform and animate that view so our choice was already made.</p>
+
+<h2>Custom Controls</h2>
+
+<p>So the video is going to be displayed in a <code>TextureView</code>, now we need a way of interacting with the video. Yes, the media player controls.</p>
+
+<p><img src="https://raw.githubusercontent.com/malmstein/Fenster/master/art/custom_controls.png"></p>
+
+<p>As you can see we decided to use a similar approach to what <strong>Youtube</strong> is doing, the custom controller occupies the whole screen making it very easy to use.
+Quite frankly this is much more appealing from my point of view. We&rsquo;ve all seen these designs for video players where the controller is aligned to the
+bottom of the screen (inspired in certain other platform) and I certainly believe this approach makes more sense.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'><span class="nt">&lt;com.malmstein.fenster.VideoTouchRoot</span>
+</span><span class='line'>  <span class="na">xmlns:android=</span><span class="s">&quot;http://schemas.android.com/apk/res/android&quot;</span>
+</span><span class='line'>  <span class="na">android:id=</span><span class="s">&quot;@+id/media_controller_touch_root&quot;</span>
+</span><span class='line'>  <span class="na">android:layout_width=</span><span class="s">&quot;match_parent&quot;</span>
+</span><span class='line'>  <span class="na">android:layout_height=</span><span class="s">&quot;match_parent&quot;</span>
+</span><span class='line'>  <span class="na">android:background=</span><span class="s">&quot;@color/default_bg&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>
+</span><span class='line'>....
+</span><span class='line'>
+</span><span class='line'><span class="nt">&lt;/com.malmstein.fenster.VideoTouchRoot&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The most important part of this custom controller is <strong>the root layout which is going to enable / disable the controller itself</strong>. That is the <code>VideoTouchRoot</code> and
+it&rsquo;s nothing else than a <code>FrameLayout</code> we put as a layout root to get notified about any screen touches. The <code>PlayerController</code> will set a listener and show or
+hide the view accordingly</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">VideoTouchRoot</span> <span class="n">touchRoot</span> <span class="o">=</span> <span class="o">(</span><span class="n">VideoTouchRoot</span><span class="o">)</span> <span class="n">v</span><span class="o">.</span><span class="na">findViewById</span><span class="o">(</span><span class="n">R</span><span class="o">.</span><span class="na">id</span><span class="o">.</span><span class="na">media_controller_touch_root</span><span class="o">);</span>
+</span><span class='line'><span class="n">touchRoot</span><span class="o">.</span><span class="na">setOnTouchReceiver</span><span class="o">(</span><span class="k">this</span><span class="o">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><strong>How does the PlayerController work?</strong></p>
+
+<p>Basically, the big part of the job is done when the <code>PlayerController</code> needs to be attached. It&rsquo;s the <code>TextureView</code> who takes care of this job, setting an anchor
+view which is the <code>PlayerController</code> itself.</p>
+
+<p>Once this view is anchored it&rsquo;s just a matter of setting listeners to all the events we want to track (<strong>Play</strong>/<strong>Pause</strong>/<strong>Seek</strong>) and handle the communication
+between the view and the <code>MediaPlayer</code>.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">public</span> <span class="kt">void</span> <span class="nf">setAnchorView</span><span class="o">(</span><span class="kd">final</span> <span class="n">View</span> <span class="n">view</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">mAnchor</span> <span class="o">=</span> <span class="n">view</span><span class="o">;</span>
+</span><span class='line'>    <span class="n">LayoutParams</span> <span class="n">frameParams</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">LayoutParams</span><span class="o">(</span>
+</span><span class='line'>            <span class="n">ViewGroup</span><span class="o">.</span><span class="na">LayoutParams</span><span class="o">.</span><span class="na">MATCH_PARENT</span><span class="o">,</span>
+</span><span class='line'>            <span class="n">ViewGroup</span><span class="o">.</span><span class="na">LayoutParams</span><span class="o">.</span><span class="na">MATCH_PARENT</span>
+</span><span class='line'>    <span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">removeAllViews</span><span class="o">();</span>
+</span><span class='line'>    <span class="n">View</span> <span class="n">v</span> <span class="o">=</span> <span class="n">makeControllerView</span><span class="o">();</span>
+</span><span class='line'>    <span class="n">addView</span><span class="o">(</span><span class="n">v</span><span class="o">,</span> <span class="n">frameParams</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>TextureVideoView</h2>
+
+<p>At this point we know how the controller is shown / hidden and which component is that view anchored to, but we are missing the big part of this puzzle
+which is the View who handles it all, the <code>TextureVideoView</code>.</p>
+
+<p>This view is the only one communicating with the <code>MediaPlayer</code>, which allows us to handle on the interaction between the controller and the player
+transparently to the other parts of the application. Going back to the initial state diagram, one can see that it would be very helpful to save
+the actual state of the player in order to know which steps can be followed. The <code>TextureVideoView</code> <strong>keeps track internally of that state</strong>.</p>
+
+<p>Another important aspect of the view consists in handling all the listeners that the <code>MediaPlayer</code> exposes</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">mMediaPlayer</span><span class="o">.</span><span class="na">setOnPreparedListener</span><span class="o">(</span><span class="n">mPreparedListener</span><span class="o">);</span>
+</span><span class='line'><span class="n">mMediaPlayer</span><span class="o">.</span><span class="na">setOnVideoSizeChangedListener</span><span class="o">(</span><span class="n">mSizeChangedListener</span><span class="o">);</span>
+</span><span class='line'><span class="n">mMediaPlayer</span><span class="o">.</span><span class="na">setOnCompletionListener</span><span class="o">(</span><span class="n">mCompletionListener</span><span class="o">);</span>
+</span><span class='line'><span class="n">mMediaPlayer</span><span class="o">.</span><span class="na">setOnErrorListener</span><span class="o">(</span><span class="n">mErrorListener</span><span class="o">);</span>
+</span><span class='line'><span class="n">mMediaPlayer</span><span class="o">.</span><span class="na">setOnInfoListener</span><span class="o">(</span><span class="n">mInfoListener</span><span class="o">);</span>
+</span><span class='line'><span class="n">mMediaPlayer</span><span class="o">.</span><span class="na">setOnBufferingUpdateListener</span><span class="o">(</span><span class="n">mBufferingUpdateListener</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">mMediaPlayer</span><span class="o">.</span><span class="na">setDataSource</span><span class="o">(</span><span class="n">getContext</span><span class="o">(),</span> <span class="n">mUri</span><span class="o">,</span> <span class="n">mHeaders</span><span class="o">);</span>
+</span><span class='line'><span class="n">mMediaPlayer</span><span class="o">.</span><span class="na">setSurface</span><span class="o">(</span><span class="k">new</span> <span class="nf">Surface</span><span class="o">(</span><span class="n">mSurfaceTexture</span><span class="o">));</span>
+</span><span class='line'><span class="n">mMediaPlayer</span><span class="o">.</span><span class="na">setAudioStreamType</span><span class="o">(</span><span class="n">AudioManager</span><span class="o">.</span><span class="na">STREAM_MUSIC</span><span class="o">);</span>
+</span><span class='line'><span class="n">mMediaPlayer</span><span class="o">.</span><span class="na">setScreenOnWhilePlaying</span><span class="o">(</span><span class="kc">true</span><span class="o">);</span>
+</span><span class='line'><span class="n">mMediaPlayer</span><span class="o">.</span><span class="na">prepareAsync</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">mCurrentState</span> <span class="o">=</span> <span class="n">STATE_PREPARING</span><span class="o">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>As you can see, there is a big chunk of listeners to be set here, not the nicest looking part but the most helpful of all. Not only we&rsquo;ve set
+all the listeners but also created the <a href="http://developer.android.com/reference/android/graphics/SurfaceTexture.html">SurfaceTexture</a> <strong>where the video
+will be displayed</strong>, set the DataSource with the video information and last but not least important, asked the <code>MediaPlayer</code> to prepare itself in order
+to start playing the video.</p>
+
+<p>Important here not to call <code>prepare()</code> but use <code>prepareAsync()</code> instead. As you can imagine the <code>prepare()</code> method is <strong>run in the UI thread</strong> which will block
+the application, by using the <code>onPreparedListener</code> we&rsquo;ll be notified when the <code>MediaPlayer</code> can start playing the video. It&rsquo;s just another listener and
+we love them, don&rsquo;t we?</p>
+
+<p><strong>Notify when the video is playing</strong></p>
+
+<p>From all those listeners that we&rsquo;ve set earlier, perhaps the one which tells us more about the <code>MediaPlayer</code> status is the <code>onInfoListener()</code>:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="kd">final</span> <span class="n">OnInfoListener</span> <span class="n">onInfoToPlayStateListener</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">OnInfoListener</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nd">@Override</span>
+</span><span class='line'>  <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">onInfo</span><span class="o">(</span><span class="kd">final</span> <span class="n">MediaPlayer</span> <span class="n">mp</span><span class="o">,</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">what</span><span class="o">,</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">extra</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">if</span> <span class="o">(</span><span class="n">noPlayStateListener</span><span class="o">())</span> <span class="o">{</span>
+</span><span class='line'>          <span class="k">return</span> <span class="kc">false</span><span class="o">;</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">if</span> <span class="o">(</span><span class="n">MediaPlayer</span><span class="o">.</span><span class="na">MEDIA_INFO_VIDEO_RENDERING_START</span> <span class="o">==</span> <span class="n">what</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="n">onPlayStateListener</span><span class="o">.</span><span class="na">onFirstVideoFrameRendered</span><span class="o">();</span>
+</span><span class='line'>          <span class="n">onPlayStateListener</span><span class="o">.</span><span class="na">onPlay</span><span class="o">();</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>      <span class="k">if</span> <span class="o">(</span><span class="n">MediaPlayer</span><span class="o">.</span><span class="na">MEDIA_INFO_BUFFERING_START</span> <span class="o">==</span> <span class="n">what</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="n">onPlayStateListener</span><span class="o">.</span><span class="na">onBuffer</span><span class="o">();</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>      <span class="k">if</span> <span class="o">(</span><span class="n">MediaPlayer</span><span class="o">.</span><span class="na">MEDIA_INFO_BUFFERING_END</span> <span class="o">==</span> <span class="n">what</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="n">onPlayStateListener</span><span class="o">.</span><span class="na">onPlay</span><span class="o">();</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">return</span> <span class="kc">false</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>These three flags give us vital information, they will tell us <strong>when the first frame of the video starts to play</strong>, when the <strong>MediaPlayer starts buffering</strong> and
+when the <strong>video is playing again after buffering</strong>. Finally all this information will be sent to the PlayerController in order to show / hide the controls
+and the loading view.</p>
+
+<h2>Introducing Fenster</h2>
+
+<p>To wrap things up, it&rsquo;s always better to have a project to look into it. That&rsquo;s why I&rsquo;ve created <a href="https://github.com/malmstein/fenster">Fenster</a>, a library
+where you&rsquo;ll find all these views we&rsquo;ve been talking about in this post and a nice <strong>demo project</strong> to show it all.</p>
+
+<p><img src="https://raw.githubusercontent.com/malmstein/Fenster/master/art/video_example.gif"></p>
+
+<p>As always, <strong>fork it</strong>, <strong>use it</strong>, and if you want to contribute <a href="https://github.com/malmstein/fenster/pulls">pull requests</a> are more than welcome!</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[One Month Using a Standing Desk]]></title>
+    <link href="http://malmstein.github.io/blog/2014/07/26/one-month-using-a-standing-desk/"/>
+    <updated>2014-07-26T18:39:34+01:00</updated>
+    <id>http://malmstein.github.io/blog/2014/07/26/one-month-using-a-standing-desk</id>
+    <content type="html"><![CDATA[<p>Why not? That&rsquo;s what I said to myself. After reading a lot of <a href="http://www.nytimes.com/2012/12/02/business/stand-up-desks-gaining-favor-in-the-workplace.html?_r=0">interesting</a>
+posts and <a href="http://www.smithsonianmag.com/science-nature/five-health-benefits-standing-desks-180950259/">information</a> about standing desks
+I decided to give it a go. It can&rsquo;t harm, right? I mean worst case scenario one could just lay on one of the couches around the office and rest.
+Now, after one month using a standing desk I can&rsquo;t be clearer about it, I&rsquo;m not sitting anymore.</p>
+
+<!-- more -->
+
+
+<h2>U sure? That&rsquo;s really tiring, isn&rsquo;t it?</h2>
+
+<p>When I started thinking about it I was very sceptical, wasn&rsquo;t sure about it at all. The sole idea of standing the whole day was not pleasant,
+it was all too tiring.</p>
+
+<p>I&rsquo;ve been sitting around since I can recall, that includes all kinds of physical and not physical activities: eating, drinking, studying, reading and
+obviously, programming. Yes, we all stand up for our daily standup (yes, you are supposed to stand up in stand up meetings) but after that one
+quickly returns to the comfortable chair. That&rsquo;s where we drink our coffee, lay towards a side or if you are lucky enough to have one of those chairs, you
+can even lay back and make it look like you are really thinking about something meaningful.</p>
+
+<p>That was my case, the lucky one. It also means that my back was already getting the so-familiar shape of this guy:</p>
+
+<p><img class="center" src="http://3.bp.blogspot.com/-Sec0_UDOhZw/UgtcRkUcSkI/AAAAAAAAAWk/YzWo6WEvvkM/s1600/shutterstock_140199787+%5BConverted%5D.jpg"></p>
+
+<p>I know, you also have it don&rsquo;t you? Well I&rsquo;ve always had it and that&rsquo;s one of the reasons why the standing desk looked like a good idea.</p>
+
+<p>So I decided to give it a go. When making a development proposal at <a href="" title="http://www.novoda.com">Novoda</a> we tend to show three different scopes:</p>
+
+<ol>
+<li><strong>MVP or Minimun Viable Product:</strong> That&rsquo;s the minimun set of feature a client can expect to satisfy the business requirements.</li>
+<li><strong>MDP or Minimun Desirable Product:</strong> Takes 4 to 6 more sprints to complete, has all the features in the MVP, some exciting new
+ones and some really nice UI/UX improvements.</li>
+<li><strong>WOW:</strong> This is something worth featuring at Google Play, there is nothing like this in the market and all your competitors will be
+jealous of this product.</li>
+</ol>
+
+
+<h2>Minimun viable product or MVP</h2>
+
+<p>So I went on a mission. What&rsquo;s the MVP for a standing desk?</p>
+
+<p>As the name indicates, a standing desk requires the individual to be standing. Ideally your eyes would be at the same height as the screen and
+your arms should type the keyboard comfortably enough for 8 hours in that position.</p>
+
+<p>Yes, those are delivery boxes. A nice set of 4 delivery boxes, one for the screen, one for the laptop, another one for the keyboard and the last
+one for the mouse. All very ecological and environmental friendly</p>
+
+<p>I worked that way for two weeks, trying to figure out if I actually liked this whole thing of standing. And I have to say, the result was a complete
+surprise for me. After one week I could develop ten times faster, my productivity increased 100% and I always arrived on time&hellip; hell no&hellip; I freaking hated
+it! My feet were hurting the whole afternoon, the lunch break was indeed a break which my body used to rest and at the end of the day I was tired, really tired.</p>
+
+<p>So, the whole thing was actually working! No one should be tired of standing 9 hours, I&rsquo;m sorry to break your bubble but no, that&rsquo;s not normal nor healthy.</p>
+
+<h2>Minimun desirable product or MDP</h2>
+
+<p>The proof of concept was successful, it worked but it could also be improved enormously. After a few days the boxes under the keyboard and the mouse started
+to collapse and the posture was starting to get compromised. It was time to start thinking about new design iterations.</p>
+
+<p>Searching online one can found a <a href="http://lifehacker.com/five-best-standing-desks-1528244287">huge</a> amount of useful information and links about building or
+buying a standing desk. Finally, I decided that my next move would be building my own based on <a href="http://iamnotaprogrammer.com/Ikea-Standing-desk-for-22-dollars.html">this</a>.</p>
+
+<p><img class="center" src="https://raw.githubusercontent.com/malmstein/malmstein.github.io/master/images/standing_desk_1.jpg"></p>
+
+<p><img class="center" src="https://raw.githubusercontent.com/malmstein/malmstein.github.io/master/images/standing_desk_2.jpg"></p>
+
+<p><img class="center" src="https://raw.githubusercontent.com/malmstein/malmstein.github.io/master/images/standing_desk_3.jpg"></p>
+
+<p>It&rsquo;s a pretty decent solution, €25 from Ikea in Berlin.</p>
+
+<h2>Some improvements</h2>
+
+<p>After a while the wrists started to feel a bit weird. The position had changed a bit compared to what I used to have in the MVP version and wasn&rsquo;t feeling
+very comfortable. So after searching online I found the best possible solutions, a <a href="http://www.amazon.de/gp/product/B004DANDN4/ref=oh_aui_detailpage_o00_s00?ie=UTF8&amp;psc=1">Wrist Pad</a>
+and a <a href="http://www.amazon.de/gp/product/B0053XC1J2/ref=oh_aui_detailpage_o00_s01?ie=UTF8&amp;psc=1">Mouse Pad</a>. The Grifiti wrist pad may be almost as
+expensive as the whole standing desk but the fact that it&rsquo;s higher than the rest of wrist pads out there made it the perfect choice. I&rsquo;m using a
+<a href="https://www.diatec.co.jp/en/det.php?prod_c=1320">Filco mechanical keyboard</a> (if you haven&rsquo;t tried one you should) and the hands position wasn&rsquo;t very
+pleasant until the wrist pad was there.</p>
+
+<p>After all, adding the pads to the total cost we are talking about <strong>€50</strong> for the whole thing. Considering that we spend between 9 and 10 hours a day
+sitting / standing in our desks I&rsquo;d say it&rsquo;s pretty affordable.</p>
+
+<h2>The conclusion</h2>
+
+<p>So it&rsquo;s been almost over a month and the results are great. It&rsquo;s not easy at the beginning, it&rsquo;s normal to get tired and feel that it&rsquo;s not worth it.
+I discovered that my shoes actually were not confortable at all, standing 9 on Converse may be very hipster but definitely not the best you can do
+for your feet health.</p>
+
+<p>Once you survive to the first week you&rsquo;ll start noticing how you tend to stand more and sit less, and not just in the office. One morning I suddenly
+found myself having breakfast while standing&hellip; that was too much but it&rsquo;s just an example that how natural it all can result in the end.</p>
+
+<p>If you try it please do let me know and if you have any other cool ideas / tips to make a better standing desk do share them too.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Your Forms Don't Need to Be Ugly Part 3]]></title>
+    <link href="http://malmstein.github.io/blog/2014/07/09/your-forms-dont-need-to-be-ugly-part-3/"/>
+    <updated>2014-07-09T19:03:54+01:00</updated>
+    <id>http://malmstein.github.io/blog/2014/07/09/your-forms-dont-need-to-be-ugly-part-3</id>
+    <content type="html"><![CDATA[<p>This is the 3 part of a series of posts where we are trying to improve the ui and interaction with forms in Android. <a href="http://www.malmstein.com/blog/2014/06/15/your-forms-dont-need-to-be-ugly-part-2/">Part 2</a>
+introduced the <a href="http://www.github.com/malmstein/FloatingHints">FloatingHints</a> library and showed how this simple pattern can make a big impact
+in your forms.</p>
+
+<p>The source code for Part 2 is <a href="https://github.com/malmstein/UglyForms/tree/step_two">already available on Github</a>.</p>
+
+<p>On today&rsquo;s post, we will introduce an easy way of dealing with transitions between forms and how to respond to orientation changes</p>
+
+<!-- more -->
+
+
+<h2>The Form flow does not need to suck</h2>
+
+<p><img class="center" src="https://raw.githubusercontent.com/malmstein/UglyForms/master/art/animate_form.gif"></p>
+
+<p>It&rsquo;s very common to see a welcome message when opening a form which is telling us a bit about the application or simply because someone decided that
+we are all still living in the early days of the internet. Don&rsquo;t worry, we got you covered for that.</p>
+
+<p>One of the most annoying things that may happen when navigation through a Login form is when pressing the <strong>Register</strong> button.
+I&rsquo;ve seen things, and I&rsquo;m sure you also have! A common example is to jump to a whole new Activity, the user is going to see that ugly change of context,
+the famous white background in the screen while the screens change or even worse&hellip; it  may as well send the user to the Browser just
+because the application can&rsquo;t handle registrations.</p>
+
+<p>Wouldn&rsquo;t it be nice if you could just have a nicer way of showing all the content?</p>
+
+<h2>Animating transitions</h2>
+
+<p>There are several ways of animating views, <code>ViewPager</code>, <code>ViewAnimator</code>, <code>ViewSwitcher</code> being the most used examples.</p>
+
+<p>Before start using a <code>ViewPager</code> and write adapters, fragments, etc&hellip; let&rsquo;s understand what we are talking about here. This is more a personal
+point of view than anything else but, I&rsquo;m just not a big fun of building a castle when I only need a hut. Our form currently has two main goals,
+<strong>Sign in</strong> and <strong>Register</strong> users, that&rsquo;s 2 actions and bunch of <code>EditText</code>so let&rsquo;s keep it simple.</p>
+
+<p>We are going to create three different views, one for <strong>Register</strong>, one for the <strong>Welcome message</strong> and the last one for <strong>Signining in</strong>. We will
+then use an animator to make the transitions from one view to another. As discussed earlier, <code>ViewPager</code>could be a solution
+but I don&rsquo;t see the need of using adapters and fragments for this purpose. <code>ViewSwitcher</code>only allows use to switch between two views so
+the ideal candidate for this task is a <code>ViewAnimator</code>.</p>
+
+<p>One thing though, we are not going to show one view after the other. Instead, we are going to switch between views with different animations
+by sliding the form left and right depending on the action that the user wants to take. Right, how do we do that?</p>
+
+<h2>The MultipleViewSwitcher</h2>
+
+<p><img class="center" src="https://raw.githubusercontent.com/malmstein/UglyForms/step_three/art/animate_form.gif"></p>
+
+<p>As you can see, after showing the welcome message if the user wants to Register we&rsquo;ll slide the form from the left and if the user wants
+to Log in we will slide the form from the right. To do that, the <code>MultipleViewSwitcher</code>needs to add
+some new functionality to what the <code>ViewAnimator</code>can do.</p>
+
+<p>The first addition is that we need to be able to change the initial page of the view.
+There are several ways of doing this but since we are extending <code>ViewAnimator</code>and I really like to use the <code>ViewAttributes</code>we will
+set this initial page as an attribute.</p>
+
+<p><strong>attrs.xml</strong></p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'>  <span class="nt">&lt;declare-styleable</span> <span class="na">name=</span><span class="s">&quot;MultipleViewSwitcher&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;attr</span> <span class="na">name=</span><span class="s">&quot;initialPage&quot;</span> <span class="na">format=</span><span class="s">&quot;integer&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;/declare-styleable&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Our new view is now able to use this attribute and change the displayed page once it&rsquo;s inflated. Note that this page change can&rsquo;t be done
+before the view is inflated since it has not computed yet all all it&rsquo;s children nor added them to the <code>ViewGroup</code>.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>  <span class="kd">public</span> <span class="kd">class</span> <span class="nc">MultipleViewSwitcher</span> <span class="kd">extends</span> <span class="n">ViewAnimator</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="kd">private</span> <span class="kt">int</span> <span class="n">initialChild</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="kd">public</span> <span class="nf">MultipleViewSwitcher</span><span class="o">(</span><span class="n">Context</span> <span class="n">context</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="k">this</span><span class="o">(</span><span class="n">context</span><span class="o">,</span> <span class="kc">null</span><span class="o">);</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="kd">public</span> <span class="nf">MultipleViewSwitcher</span><span class="o">(</span><span class="n">Context</span> <span class="n">context</span><span class="o">,</span> <span class="n">AttributeSet</span> <span class="n">attrs</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="k">this</span><span class="o">(</span><span class="n">context</span><span class="o">,</span> <span class="n">attrs</span><span class="o">,</span> <span class="mi">0</span><span class="o">);</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="kd">public</span> <span class="nf">MultipleViewSwitcher</span><span class="o">(</span><span class="n">Context</span> <span class="n">context</span><span class="o">,</span> <span class="n">AttributeSet</span> <span class="n">attrs</span><span class="o">,</span> <span class="kt">int</span> <span class="n">defStyle</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="kd">super</span><span class="o">(</span><span class="n">context</span><span class="o">,</span> <span class="n">attrs</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="n">TypedArray</span> <span class="n">a</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="na">obtainStyledAttributes</span><span class="o">(</span><span class="n">attrs</span><span class="o">,</span> <span class="n">R</span><span class="o">.</span><span class="na">styleable</span><span class="o">.</span><span class="na">MultipleViewSwitcher</span><span class="o">,</span> <span class="n">defStyle</span><span class="o">,</span> <span class="mi">0</span><span class="o">);</span>
+</span><span class='line'>          <span class="n">initialChild</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="na">getInt</span><span class="o">(</span><span class="n">R</span><span class="o">.</span><span class="na">styleable</span><span class="o">.</span><span class="na">MultipleViewSwitcher_initialPage</span><span class="o">,</span> <span class="mi">0</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="n">a</span><span class="o">.</span><span class="na">recycle</span><span class="o">();</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="nd">@Override</span>
+</span><span class='line'>      <span class="kd">protected</span> <span class="kt">void</span> <span class="nf">onFinishInflate</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>          <span class="kd">super</span><span class="o">.</span><span class="na">onFinishInflate</span><span class="o">();</span>
+</span><span class='line'>          <span class="n">displayInitialViewIfNecessary</span><span class="o">();</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="kd">private</span> <span class="kt">void</span> <span class="nf">displayInitialViewIfNecessary</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>          <span class="k">if</span> <span class="o">(</span><span class="n">initialChild</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="o">){</span>
+</span><span class='line'>              <span class="n">setDisplayedChild</span><span class="o">(</span><span class="n">initialChild</span><span class="o">);</span>
+</span><span class='line'>          <span class="o">}</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>As you all know, the first view in the <code>ViewAnimator</code>has the id 0 so we are going to set our initialPage as 1:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'>    <span class="nt">&lt;com.malmstein.widgets.MultipleViewSwitcher</span>
+</span><span class='line'>      <span class="na">android:id=</span><span class="s">&quot;@+id/form_animator&quot;</span>
+</span><span class='line'>      <span class="na">android:layout_width=</span><span class="s">&quot;match_parent&quot;</span>
+</span><span class='line'>      <span class="na">android:layout_height=</span><span class="s">&quot;wrap_content&quot;</span>
+</span><span class='line'>      <span class="na">app:initialPage=</span><span class="s">&quot;1&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="nt">&lt;include</span>
+</span><span class='line'>        <span class="na">android:id=</span><span class="s">&quot;@+id/form_register&quot;</span>
+</span><span class='line'>        <span class="na">layout=</span><span class="s">&quot;@layout/view_form_register&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="nt">&lt;include</span>
+</span><span class='line'>        <span class="na">android:id=</span><span class="s">&quot;@+id/form_welcome_message&quot;</span>
+</span><span class='line'>        <span class="na">layout=</span><span class="s">&quot;@layout/view_form_welcome&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="nt">&lt;include</span>
+</span><span class='line'>        <span class="na">android:id=</span><span class="s">&quot;@+id/form_login&quot;</span>
+</span><span class='line'>        <span class="na">layout=</span><span class="s">&quot;@layout/view_form_login&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nt">&lt;/com.malmstein.widgets.MultipleViewSwitcher&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Cool, now all the form is in place and our first page is the <strong>Welcome Message</strong>. Earlier we said that we wanted to animate the
+transitions between forms, and that&rsquo;s exactly what the <code>MultipleViewSwitcher</code>is made for. Basically, there are two methods and attributes
+that we are going to use in order to achieve this <code>setInAnimation(Animation inAnimation)</code>and <code>setOutAnimation(Animation inAnimation)</code></p>
+
+<p>As you&rsquo;ve seen, the forms are not always sliding into the same direction but changing based on the current page. In order to achieve that we are also
+going to add some changes to the transition logic so this can be easily handled.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="cm">/**</span>
+</span><span class='line'><span class="cm">     * Animates the view to the next children using the animations specified</span>
+</span><span class='line'><span class="cm">     *</span>
+</span><span class='line'><span class="cm">     * @param inAnimation The inAnimation</span>
+</span><span class='line'><span class="cm">     * @param outAnimation The outAnimation</span>
+</span><span class='line'><span class="cm">     */</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">animateNext</span><span class="o">(</span><span class="n">Animation</span> <span class="n">inAnimation</span><span class="o">,</span> <span class="n">Animation</span> <span class="n">outAnimation</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">setInAnimation</span><span class="o">(</span><span class="n">inAnimation</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">setOutAnimation</span><span class="o">(</span><span class="n">outAnimation</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">showNext</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="cm">/**</span>
+</span><span class='line'><span class="cm">     * Animates the view to the next children using the animations specified</span>
+</span><span class='line'><span class="cm">     *</span>
+</span><span class='line'><span class="cm">     * @param context              The application&#39;s environment.</span>
+</span><span class='line'><span class="cm">     * @param inAnimationResource  The resource id of the inAnimation.</span>
+</span><span class='line'><span class="cm">     * @param outAnimationResource The resource id of the outAnimation.</span>
+</span><span class='line'><span class="cm">     */</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">animateNext</span><span class="o">(</span><span class="n">Context</span> <span class="n">context</span><span class="o">,</span> <span class="kt">int</span> <span class="n">inAnimationResource</span><span class="o">,</span> <span class="kt">int</span> <span class="n">outAnimationResource</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">animateNext</span><span class="o">(</span><span class="n">AnimationUtils</span><span class="o">.</span><span class="na">loadAnimation</span><span class="o">(</span><span class="n">context</span><span class="o">,</span> <span class="n">inAnimationResource</span><span class="o">),</span>
+</span><span class='line'>                <span class="n">AnimationUtils</span><span class="o">.</span><span class="na">loadAnimation</span><span class="o">(</span><span class="n">context</span><span class="o">,</span> <span class="n">outAnimationResource</span><span class="o">));</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The view allows us to set two Animations which we will use to animate the views accordingly. Looking into
+the <a href="http://developer.android.com/reference/android/widget/ViewAnimator.html">ViewAnimator</a> implementation one can
+see that it&rsquo;s holding refference to both the <strong>In</strong> and the <strong>Out</strong> Animations, so there is no need for our new View to add more overhead to it.
+It is our responsability though to keep an eye on how many Animations we are loading and how we do it. Same as the <code>ViewAnimator</code>, the <code>MultipleViewSwitcher</code>
+can receive a new Animation by parameter or the resourceId of it which we will then load with <code>AnimationUtils.loadAnimation(context, animationResource)</code></p>
+
+<p>At this point we hace achieved all the goals of the wanted but there is a small annoying issue, when rotating the device we are not saving the
+current displayed child <code>ViewAnimator</code>does not do it either, so it would be the Activity/Fragment responsibility. I&rsquo;d much rather have this solved
+in the View so we are going to save the state of the View when rotation.</p>
+
+<h2>Saving the state of the view</h2>
+
+<p>Since our form is now composed by more than one view, it would be nice to save the displayed child on orientation changes. No one wants to move the device from portrait to landscape
+and realise that the form is now showing the initial page. This view is not just usable in forms, one can easily use it to handle the on boarding wizard of an application.
+Can you imagine how frustrated the user would be if after swiping through four screens, the device is rotated and the wizards needs to be completed from the beginning?</p>
+
+<p>Android uses <code>Parcelable</code>to save the <a href="http://developer.android.com/reference/android/view/View.html#onSaveInstanceState(">instance state</a>). I&rsquo;ve seen plenty of implementations
+creating their own Parcelable, etc&hellip; but the easiest way in my opinion is using a <a href="http://developer.android.com/reference/android/os/Bundle.html">Bundle</a> (which implements Parcelable)</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="n">Parcelable</span> <span class="nf">onSaveInstanceState</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Bundle</span> <span class="n">bundle</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">Bundle</span><span class="o">();</span>
+</span><span class='line'>        <span class="n">bundle</span><span class="o">.</span><span class="na">putParcelable</span><span class="o">(</span><span class="s">&quot;instanceState&quot;</span><span class="o">,</span> <span class="kd">super</span><span class="o">.</span><span class="na">onSaveInstanceState</span><span class="o">());</span>
+</span><span class='line'>        <span class="n">bundle</span><span class="o">.</span><span class="na">putInt</span><span class="o">(</span><span class="s">&quot;displayedChild&quot;</span><span class="o">,</span> <span class="n">getDisplayedChild</span><span class="o">());</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">bundle</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onRestoreInstanceState</span><span class="o">(</span><span class="n">Parcelable</span> <span class="n">state</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">state</span> <span class="k">instanceof</span> <span class="n">Bundle</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">Bundle</span> <span class="n">bundle</span> <span class="o">=</span> <span class="o">(</span><span class="n">Bundle</span><span class="o">)</span> <span class="n">state</span><span class="o">;</span>
+</span><span class='line'>            <span class="n">initialChild</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="na">getInt</span><span class="o">(</span><span class="s">&quot;displayedChild&quot;</span><span class="o">);</span>
+</span><span class='line'>            <span class="n">setDisplayedChild</span><span class="o">(</span><span class="n">initialChild</span><span class="o">);</span>
+</span><span class='line'>            <span class="n">state</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="na">getParcelable</span><span class="o">(</span><span class="s">&quot;instanceState&quot;</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>        <span class="kd">super</span><span class="o">.</span><span class="na">onRestoreInstanceState</span><span class="o">(</span><span class="n">state</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>When the device&rsquo;s orientation changes, the view itself will save it&rsquo;s instance state and restore the displayed child. It&rsquo;s very important that the View has it&rsquo;s own id defined
+in the XML layout, if it doesn&rsquo;t the <code>onSaveInstanceState()</code>and <code>onRestoreInstanceState()</code>won&rsquo;t be called and state won&rsquo;t be restored.</p>
+
+<h2>Show me the code</h2>
+
+<p>If this caught your attention, please check the source code for Part 3 <a href="https://github.com/malmstein/UglyForms/tree/step_three">already available on Github</a>.</p>
+
+<p>The next part will be last one and will add some love to the overall look and feel in addition to some interesting ideas about buttons and input keyboard handling.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Your Forms Don't Need to Be Ugly Part 2]]></title>
+    <link href="http://malmstein.github.io/blog/2014/06/15/your-forms-dont-need-to-be-ugly-part-2/"/>
+    <updated>2014-06-15T13:26:51+01:00</updated>
+    <id>http://malmstein.github.io/blog/2014/06/15/your-forms-dont-need-to-be-ugly-part-2</id>
+    <content type="html"><![CDATA[<p>Last week we <a href="http://www.malmstein.com/blog/2014/06/09/your-forms-dont-need-to-be-ugly-part-1/">started to talk</a> about how ugly forms can be displayed and raised some issues about it. Today is time to stop ranting and
+start contributing.</p>
+
+<h2>Introducing FloatingHints</h2>
+
+<p>A while ago thanks to <a href="https://plus.google.com/+ChrisBanes/posts/5Ejaq51UWGo">Chris Banes</a> and <a href="https://plus.google.com/118417777153109946393/posts/ewdTd7bNw29">Cyril Mottier</a> there was a buzz around a pattern called Floating Label Layout. I used this approach in
+the last project I&rsquo;ve been working on and the feedback was very good. Therefore, I&rsquo;m releasing this small library called <a href="https://github.com/malmstein/FloatingHints">FloatingHints</a> which
+you could use if you want to add a bit of styling to those ugly forms.</p>
+
+<p>The snapshot version is <strong>already available</strong> at Sonatype while the release version will be soon released at Maven Central.</p>
+
+<!-- more -->
+
+
+<h2>If you wouldn&rsquo;t use that form, why would the user?</h2>
+
+<p>In the previous post from the series we saw one of the most common form structures. A couple of EditText where the user will write the
+user and password and a button used to start the Login action.</p>
+
+<p>With the addition of the Floating Label pattern one can have a much nicer and clear screen. No one likes to fill these forms, not even the users
+excited about using your service&hellip; so why don&rsquo;t we encourage them to do so?</p>
+
+<p><img src="https://lh4.googleusercontent.com/-65P7JghkHg0/U5X0kJ1SzEI/AAAAAAAAEvI/UijRmzcr1r4/w1118-h570-no/device-2014-06-05-155250.jpg"></p>
+
+<h2>Custom Animations</h2>
+
+<p>One of the key features of FloatingHints is that the animations which are in charge of showing or hiding the floating hint are fully customisable.
+By default, the hint will be shown using a <strong>Slide in to Top</strong> and will be hidden using a <strong>Slide out to Bottom</strong></p>
+
+<p><img class="center" src="https://raw.githubusercontent.com/malmstein/FloatingHints/master/art/floating.gif"></p>
+
+<p>This can be easily customised via XML attributes.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'>  <span class="nt">&lt;com.malmstein.floatinghints.FloatingHintEditTextLayout</span>
+</span><span class='line'>    <span class="na">android:layout_width=</span><span class="s">&quot;match_parent&quot;</span>
+</span><span class='line'>    <span class="na">android:layout_height=</span><span class="s">&quot;wrap_content&quot;</span>
+</span><span class='line'>    <span class="na">app:floatLayoutInAnimation=</span><span class="s">&quot;@anim/abc_fade_in&quot;</span>
+</span><span class='line'>    <span class="na">app:floatLayoutOutAnimation=</span><span class="s">&quot;@anim/abc_fade_out&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nt">&lt;EditText</span>
+</span><span class='line'>      <span class="na">style=</span><span class="s">&quot;@style/FloatLabel.Form.Text&quot;</span>
+</span><span class='line'>      <span class="na">android:id=</span><span class="s">&quot;@+id/float_login_email&quot;</span>
+</span><span class='line'>      <span class="na">android:layout_width=</span><span class="s">&quot;match_parent&quot;</span>
+</span><span class='line'>      <span class="na">android:layout_height=</span><span class="s">&quot;wrap_content&quot;</span>
+</span><span class='line'>      <span class="na">android:hint=</span><span class="s">&quot;@string/hint_email&quot;</span>
+</span><span class='line'>      <span class="na">android:inputType=</span><span class="s">&quot;textEmailAddress&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nt">&lt;/com.malmstein.floatinghints.FloatingHintEditTextLayout&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The result of using <strong>Fade In</strong> and <strong>Fade Out</strong> is pretty good too!</p>
+
+<p><img class="center" src="https://raw.githubusercontent.com/malmstein/FloatingHints/master/art/floating_fade.gif"></p>
+
+<h2>Customise the color of the hint</h2>
+
+<p>The <code>FloatingHintEditTextLayout</code> uses the attribute <code>floatLayoutTextAppearance</code> to change the <a href="http://developer.android.com/reference/android/widget/TextView.html#attr_android:textAppearance">TextAppearance</a>
+of the Label.</p>
+
+<p><strong>activity_demo.xml</strong></p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'>  <span class="nt">&lt;com.malmstein.floatinghints.FloatingHintEditTextLayout</span>
+</span><span class='line'>    <span class="na">android:layout_width=</span><span class="s">&quot;match_parent&quot;</span>
+</span><span class='line'>    <span class="na">android:layout_height=</span><span class="s">&quot;wrap_content&quot;</span>
+</span><span class='line'>    <span class="na">app:floatLayoutInAnimation=</span><span class="s">&quot;@anim/abc_fade_in&quot;</span>
+</span><span class='line'>    <span class="na">app:floatLayoutOutAnimation=</span><span class="s">&quot;@anim/abc_fade_out&quot;</span>
+</span><span class='line'>    <span class="na">app:floatLayoutTextAppearance=</span><span class="s">&quot;@style/FloatLabel.Label&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nt">&lt;EditText</span>
+</span><span class='line'>      <span class="na">style=</span><span class="s">&quot;@style/FloatLabel.Form.Text&quot;</span>
+</span><span class='line'>      <span class="na">android:id=</span><span class="s">&quot;@+id/float_login_email&quot;</span>
+</span><span class='line'>      <span class="na">android:layout_width=</span><span class="s">&quot;match_parent&quot;</span>
+</span><span class='line'>      <span class="na">android:layout_height=</span><span class="s">&quot;wrap_content&quot;</span>
+</span><span class='line'>      <span class="na">android:hint=</span><span class="s">&quot;@string/hint_email&quot;</span>
+</span><span class='line'>      <span class="na">android:inputType=</span><span class="s">&quot;textEmailAddress&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nt">&lt;/com.malmstein.floatinghints.FloatingHintEditTextLayout&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><strong>styles.xml</strong></p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'>  <span class="nt">&lt;style</span> <span class="na">name=</span><span class="s">&quot;FloatLabel.Label&quot;</span> <span class="na">parent=</span><span class="s">&quot;android:TextAppearance.Small&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;item</span> <span class="na">name=</span><span class="s">&quot;android:textColor&quot;</span><span class="nt">&gt;</span>@color/float_edit_text_layout_color<span class="nt">&lt;/item&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;item</span> <span class="na">name=</span><span class="s">&quot;android:textSize&quot;</span><span class="nt">&gt;</span>@dimen/text_xs<span class="nt">&lt;/item&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;item</span> <span class="na">name=</span><span class="s">&quot;android:textStyle&quot;</span><span class="nt">&gt;</span>bold<span class="nt">&lt;/item&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;/style&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><strong>float_edit_text_layout_color.xml</strong></p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'><span class="nt">&lt;selector</span> <span class="na">xmlns:android=</span><span class="s">&quot;http://schemas.android.com/apk/res/android&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;item</span> <span class="na">android:color=</span><span class="s">&quot;@color/font_yellow&quot;</span> <span class="na">android:state_activated=</span><span class="s">&quot;true&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;item</span> <span class="na">android:color=</span><span class="s">&quot;@color/font_grey&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'><span class="nt">&lt;/selector&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This way we&rsquo;ve just changed the text appearance of the label to yellow.</p>
+
+<p><img class="center" src="https://raw.githubusercontent.com/malmstein/FloatingHints/master/art/floating_fade_yellow.gif"></p>
+
+<h2>Wrapping up</h2>
+
+<p>The <a href="https://github.com/malmstein/FloatingHints/tree/master/app/src/main">demo</a> project from <a href="https://github.com/malmstein/FloatingHints">FloatingHints</a> contains a wrap up of all the ideas in this post.
+Check it out, fork it and don&rsquo;t hesitate in giving some feedback. It will be very much appreciated.</p>
+
+<p>Stay tuned for the next post of the series!</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Your Forms Don't Need to Be Ugly Part 1]]></title>
+    <link href="http://malmstein.github.io/blog/2014/06/09/your-forms-dont-need-to-be-ugly-part-1/"/>
+    <updated>2014-06-09T20:39:09+01:00</updated>
+    <id>http://malmstein.github.io/blog/2014/06/09/your-forms-dont-need-to-be-ugly-part-1</id>
+    <content type="html"><![CDATA[<p>We all have crated login or signup forms, and quite frankly, most of them are boring, ugly and non responsive to orientation changes.</p>
+
+<!-- more -->
+
+
+<h2>Why?</h2>
+
+<p>Forms are one of those screens in your application where a lot of business rules need to be accomplished. Those rules force us to have
+mandatory fields that are not the most appealing ones from a UI point of view. Maybe the country of origin is mandatory field, the group
+of age or even the gender.</p>
+
+<p>Without taking into consideration the fact that many apps nowadays force uses to login before actually using it, it may well have a reason for it, those
+forms should not frustrate the user nor lead them to exit the app&hellip; it should engage them!</p>
+
+<p>For that reason, the login screen should be polished.</p>
+
+<p>Links to</p>
+
+<h2>How to improve them</h2>
+
+<p>This is the start of a series of posts on how to improve the look and feel of your forms, suggestions or ideas that could make an impact
+in your application and the way how users feel when they see them. There are several mistakes that can be easily fixed and that require just
+a bit of polishing taste.</p>
+
+<p>All buttons must have <a href="http://developer.android.com/guide/topics/resources/drawable-resource.html#StateList">state list</a> and should respect the same padding.</p>
+
+<p><img src="https://lh4.googleusercontent.com/-65P7JghkHg0/U5X0kJ1SzEI/AAAAAAAAEvI/UijRmzcr1r4/w1118-h570-no/device-2014-06-05-155250.jpg"></p>
+
+<p>Padding between elements is very important, the example above shows a Sign In with Gmail button with wrong padding from <a href="http://www.hoteltonight.com">HotelTonight</a>.</p>
+
+<p>Actions should never take the user to another context. If there is a registration link leading to an external browser you should first think why does that
+need to be leading to an external browser in the first place. In case the transition is necessary, there are <a href="http://cyrilmottier.com/2014/05/20/custom-animations-with-fragments/">several</a>
+<a href="http://developer.android.com/training/animation/cardflip.html">examples</a> on how to create transitions between elements that are appealing to the eye.</p>
+
+<p>In the next part of this series we&rsquo;ll start adding some love to a boring login screen.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Blogging Again]]></title>
+    <link href="http://malmstein.github.io/blog/2014/06/07/blogging-again/"/>
+    <updated>2014-06-07T20:07:34+01:00</updated>
+    <id>http://malmstein.github.io/blog/2014/06/07/blogging-again</id>
+    <content type="html"><![CDATA[<p>After a couple of years being lazy and just reading what others wrote, I belive it&rsquo;s time to start blogging again. One could explain inspring stories about
+blogging and black holes but I&rsquo;m just going to explain why I chose Octopress over other blogging platforms and how I made it work for me.</p>
+
+<!-- more -->
+
+
+<h2>Why?</h2>
+
+<p>There are several blogging platforms out there, they all have their features and some of them are easier to use. The likes of <a href="https://wordpress.com/">Wordpress</a>, <a href="https://ghost.org/">Ghost</a>, <a href="https://medium.com/">Medium</a>, etc&hellip;
+are more than good options in order to start. In my case, I used Wordpress in the past, still use it for some other projects but I wanted to use something new for me.</p>
+
+<p>Markdown files are a great way of writing text, it won&rsquo;t be the best option if you are trying to write a novel but if you are familiar with Github you&rsquo;d probably
+have used them in the past. Octopress text editing is based on Markdown files, that was a plus. Octopress also supports Github Pages and the whole publishing process
+is based on Git, what else could you ask?</p>
+
+<h2>Installing Octopress</h2>
+
+<ol>
+<li>Install <a href="http://git-scm.com/">Git</a></li>
+<li>Install Ruby (1.9.3p194 using <a href="http://octopress.org/docs/setup/rbenv/">rbenv</a> when writing this post)</li>
+<li>Clone <a href="http://octopress.org/">Octopress</a></li>
+</ol>
+
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>git clone git://github.com/imathis/octopress.git octopress
+</span><span class='line'><span class="nv">$ </span><span class="nb">cd </span>octopress
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Next, install dependencies.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>gem install bundler
+</span><span class='line'><span class="nv">$ </span>rbenv rehash
+</span><span class='line'><span class="nv">$ </span>bundle install
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Install the default Octopress theme.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>rake install
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>At this point you have Octopress installed and the default theme installed, now we need to deploy it. Octopress supports deployment on GitHub pages
+and that&rsquo;s the method I chose.</p>
+
+<h2>Deploying to Github Pages</h2>
+
+<p>Github allows you to host a blog from <code>http://username.github.io</code>, where <code>username</code> is your Github username.</p>
+
+<p>Github Pages for users and organisations uses the master branch like the public directory on a web server, serving up the files at your Pages url <a href="http://username.github.io.">http://username.github.io.</a>
+As a result, you&rsquo;ll want to work on the source for your blog in the source branch and commit the generated content to the master branch. Octopress has a configuration task that helps you set all this up.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>rake setup_github_pages
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The rake task will ask you for a URL of the Github repo. Copy the SSH or HTTPS URL from your newly created repository (e.g. git@github.com:username/username.github.io.git) and paste it in as a response.</p>
+
+<p>Done, at this point your Github page is ready to be deployed, but first we need to generate the blog.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>rake generate
+</span><span class='line'><span class="nv">$ </span>rake deploy
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This will generate your blog, copy the generated files into _deploy/, add them to git, commit and push them up to the master branch. In a few seconds you should get an email from Github telling you that your commit has been received and will be published on your site.</p>
+
+<p>As you would do with any other git based project, after adding some code you&rsquo;d add it and commit it.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>git add .
+</span><span class='line'><span class="nv">$ </span>git commit -m <span class="s1">&#39;your commit message&#39;</span>
+</span><span class='line'><span class="nv">$ </span>git push origin <span class="nb">source</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Using a custom domain</h2>
+
+<p>First thing that needs to be added is a <code>CNAME</code> in the blog&rsquo;s source.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span><span class="nb">echo</span> <span class="s1">&#39;www.malmstein.com&#39;</span> &gt;&gt; <span class="nb">source</span>/CNAME
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>I&rsquo;m using a main domain, so all I had to do is modifying the DNS host and add a new <code>CNAME</code> record for <code>www</code> pointing to <code>malmstein.github.io</code></p>
+
+<p>Done!</p>
+
+<p>Further reading and more detailed instruction can be found in the <a href="http://octopress.org/docs/configuring/">Octopress</a> documentation.
+There is also a very useful <a href="https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet">cheat sheet</a> for markdown files.</p>
+]]></content>
+  </entry>
+  
+</feed>

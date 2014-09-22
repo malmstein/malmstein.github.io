@@ -1,0 +1,582 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Your Forms Don&#8217;t Need to Be Ugly Part 3 - David Gonzalez</title>
+  <meta name="author" content="David Gonzalez">
+
+  
+  <meta name="description" content="This is the 3 part of a series of posts where we are trying to improve the ui and interaction with forms in Android. Part 2
+introduced the &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://malmstein.github.io/blog/2014/07/09/your-forms-dont-need-to-be-ugly-part-3">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="David Gonzalez" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-50897004-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">David Gonzalez</a></h1>
+  
+    <h2>Android Software Craftsman sharing his thoughts</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:malmstein.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/about">About me</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Your Forms Don&#8217;t Need to Be Ugly Part 3</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-07-09T19:03:54+01:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>7:03 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>This is the 3 part of a series of posts where we are trying to improve the ui and interaction with forms in Android. <a href="http://www.malmstein.com/blog/2014/06/15/your-forms-dont-need-to-be-ugly-part-2/">Part 2</a>
+introduced the <a href="http://www.github.com/malmstein/FloatingHints">FloatingHints</a> library and showed how this simple pattern can make a big impact
+in your forms.</p>
+
+<p>The source code for Part 2 is <a href="https://github.com/malmstein/UglyForms/tree/step_two">already available on Github</a>.</p>
+
+<p>On today&rsquo;s post, we will introduce an easy way of dealing with transitions between forms and how to respond to orientation changes</p>
+
+<!-- more -->
+
+
+<h2>The Form flow does not need to suck</h2>
+
+<p><img class="center" src="https://raw.githubusercontent.com/malmstein/UglyForms/master/art/animate_form.gif"></p>
+
+<p>It&rsquo;s very common to see a welcome message when opening a form which is telling us a bit about the application or simply because someone decided that
+we are all still living in the early days of the internet. Don&rsquo;t worry, we got you covered for that.</p>
+
+<p>One of the most annoying things that may happen when navigation through a Login form is when pressing the <strong>Register</strong> button.
+I&rsquo;ve seen things, and I&rsquo;m sure you also have! A common example is to jump to a whole new Activity, the user is going to see that ugly change of context,
+the famous white background in the screen while the screens change or even worse&hellip; it  may as well send the user to the Browser just
+because the application can&rsquo;t handle registrations.</p>
+
+<p>Wouldn&rsquo;t it be nice if you could just have a nicer way of showing all the content?</p>
+
+<h2>Animating transitions</h2>
+
+<p>There are several ways of animating views, <code>ViewPager</code>, <code>ViewAnimator</code>, <code>ViewSwitcher</code> being the most used examples.</p>
+
+<p>Before start using a <code>ViewPager</code> and write adapters, fragments, etc&hellip; let&rsquo;s understand what we are talking about here. This is more a personal
+point of view than anything else but, I&rsquo;m just not a big fun of building a castle when I only need a hut. Our form currently has two main goals,
+<strong>Sign in</strong> and <strong>Register</strong> users, that&rsquo;s 2 actions and bunch of <code>EditText</code>so let&rsquo;s keep it simple.</p>
+
+<p>We are going to create three different views, one for <strong>Register</strong>, one for the <strong>Welcome message</strong> and the last one for <strong>Signining in</strong>. We will
+then use an animator to make the transitions from one view to another. As discussed earlier, <code>ViewPager</code>could be a solution
+but I don&rsquo;t see the need of using adapters and fragments for this purpose. <code>ViewSwitcher</code>only allows use to switch between two views so
+the ideal candidate for this task is a <code>ViewAnimator</code>.</p>
+
+<p>One thing though, we are not going to show one view after the other. Instead, we are going to switch between views with different animations
+by sliding the form left and right depending on the action that the user wants to take. Right, how do we do that?</p>
+
+<h2>The MultipleViewSwitcher</h2>
+
+<p><img class="center" src="https://raw.githubusercontent.com/malmstein/UglyForms/step_three/art/animate_form.gif"></p>
+
+<p>As you can see, after showing the welcome message if the user wants to Register we&rsquo;ll slide the form from the left and if the user wants
+to Log in we will slide the form from the right. To do that, the <code>MultipleViewSwitcher</code>needs to add
+some new functionality to what the <code>ViewAnimator</code>can do.</p>
+
+<p>The first addition is that we need to be able to change the initial page of the view.
+There are several ways of doing this but since we are extending <code>ViewAnimator</code>and I really like to use the <code>ViewAttributes</code>we will
+set this initial page as an attribute.</p>
+
+<p><strong>attrs.xml</strong></p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'>  <span class="nt">&lt;declare-styleable</span> <span class="na">name=</span><span class="s">&quot;MultipleViewSwitcher&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;attr</span> <span class="na">name=</span><span class="s">&quot;initialPage&quot;</span> <span class="na">format=</span><span class="s">&quot;integer&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;/declare-styleable&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Our new view is now able to use this attribute and change the displayed page once it&rsquo;s inflated. Note that this page change can&rsquo;t be done
+before the view is inflated since it has not computed yet all all it&rsquo;s children nor added them to the <code>ViewGroup</code>.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>  <span class="kd">public</span> <span class="kd">class</span> <span class="nc">MultipleViewSwitcher</span> <span class="kd">extends</span> <span class="n">ViewAnimator</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="kd">private</span> <span class="kt">int</span> <span class="n">initialChild</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="kd">public</span> <span class="nf">MultipleViewSwitcher</span><span class="o">(</span><span class="n">Context</span> <span class="n">context</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="k">this</span><span class="o">(</span><span class="n">context</span><span class="o">,</span> <span class="kc">null</span><span class="o">);</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="kd">public</span> <span class="nf">MultipleViewSwitcher</span><span class="o">(</span><span class="n">Context</span> <span class="n">context</span><span class="o">,</span> <span class="n">AttributeSet</span> <span class="n">attrs</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="k">this</span><span class="o">(</span><span class="n">context</span><span class="o">,</span> <span class="n">attrs</span><span class="o">,</span> <span class="mi">0</span><span class="o">);</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="kd">public</span> <span class="nf">MultipleViewSwitcher</span><span class="o">(</span><span class="n">Context</span> <span class="n">context</span><span class="o">,</span> <span class="n">AttributeSet</span> <span class="n">attrs</span><span class="o">,</span> <span class="kt">int</span> <span class="n">defStyle</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="kd">super</span><span class="o">(</span><span class="n">context</span><span class="o">,</span> <span class="n">attrs</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="n">TypedArray</span> <span class="n">a</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="na">obtainStyledAttributes</span><span class="o">(</span><span class="n">attrs</span><span class="o">,</span> <span class="n">R</span><span class="o">.</span><span class="na">styleable</span><span class="o">.</span><span class="na">MultipleViewSwitcher</span><span class="o">,</span> <span class="n">defStyle</span><span class="o">,</span> <span class="mi">0</span><span class="o">);</span>
+</span><span class='line'>          <span class="n">initialChild</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="na">getInt</span><span class="o">(</span><span class="n">R</span><span class="o">.</span><span class="na">styleable</span><span class="o">.</span><span class="na">MultipleViewSwitcher_initialPage</span><span class="o">,</span> <span class="mi">0</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="n">a</span><span class="o">.</span><span class="na">recycle</span><span class="o">();</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="nd">@Override</span>
+</span><span class='line'>      <span class="kd">protected</span> <span class="kt">void</span> <span class="nf">onFinishInflate</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>          <span class="kd">super</span><span class="o">.</span><span class="na">onFinishInflate</span><span class="o">();</span>
+</span><span class='line'>          <span class="n">displayInitialViewIfNecessary</span><span class="o">();</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="kd">private</span> <span class="kt">void</span> <span class="nf">displayInitialViewIfNecessary</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>          <span class="k">if</span> <span class="o">(</span><span class="n">initialChild</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="o">){</span>
+</span><span class='line'>              <span class="n">setDisplayedChild</span><span class="o">(</span><span class="n">initialChild</span><span class="o">);</span>
+</span><span class='line'>          <span class="o">}</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>As you all know, the first view in the <code>ViewAnimator</code>has the id 0 so we are going to set our initialPage as 1:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'>    <span class="nt">&lt;com.malmstein.widgets.MultipleViewSwitcher</span>
+</span><span class='line'>      <span class="na">android:id=</span><span class="s">&quot;@+id/form_animator&quot;</span>
+</span><span class='line'>      <span class="na">android:layout_width=</span><span class="s">&quot;match_parent&quot;</span>
+</span><span class='line'>      <span class="na">android:layout_height=</span><span class="s">&quot;wrap_content&quot;</span>
+</span><span class='line'>      <span class="na">app:initialPage=</span><span class="s">&quot;1&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="nt">&lt;include</span>
+</span><span class='line'>        <span class="na">android:id=</span><span class="s">&quot;@+id/form_register&quot;</span>
+</span><span class='line'>        <span class="na">layout=</span><span class="s">&quot;@layout/view_form_register&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="nt">&lt;include</span>
+</span><span class='line'>        <span class="na">android:id=</span><span class="s">&quot;@+id/form_welcome_message&quot;</span>
+</span><span class='line'>        <span class="na">layout=</span><span class="s">&quot;@layout/view_form_welcome&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="nt">&lt;include</span>
+</span><span class='line'>        <span class="na">android:id=</span><span class="s">&quot;@+id/form_login&quot;</span>
+</span><span class='line'>        <span class="na">layout=</span><span class="s">&quot;@layout/view_form_login&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nt">&lt;/com.malmstein.widgets.MultipleViewSwitcher&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Cool, now all the form is in place and our first page is the <strong>Welcome Message</strong>. Earlier we said that we wanted to animate the
+transitions between forms, and that&rsquo;s exactly what the <code>MultipleViewSwitcher</code>is made for. Basically, there are two methods and attributes
+that we are going to use in order to achieve this <code>setInAnimation(Animation inAnimation)</code>and <code>setOutAnimation(Animation inAnimation)</code></p>
+
+<p>As you&rsquo;ve seen, the forms are not always sliding into the same direction but changing based on the current page. In order to achieve that we are also
+going to add some changes to the transition logic so this can be easily handled.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="cm">/**</span>
+</span><span class='line'><span class="cm">     * Animates the view to the next children using the animations specified</span>
+</span><span class='line'><span class="cm">     *</span>
+</span><span class='line'><span class="cm">     * @param inAnimation The inAnimation</span>
+</span><span class='line'><span class="cm">     * @param outAnimation The outAnimation</span>
+</span><span class='line'><span class="cm">     */</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">animateNext</span><span class="o">(</span><span class="n">Animation</span> <span class="n">inAnimation</span><span class="o">,</span> <span class="n">Animation</span> <span class="n">outAnimation</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">setInAnimation</span><span class="o">(</span><span class="n">inAnimation</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">setOutAnimation</span><span class="o">(</span><span class="n">outAnimation</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">showNext</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="cm">/**</span>
+</span><span class='line'><span class="cm">     * Animates the view to the next children using the animations specified</span>
+</span><span class='line'><span class="cm">     *</span>
+</span><span class='line'><span class="cm">     * @param context              The application&#39;s environment.</span>
+</span><span class='line'><span class="cm">     * @param inAnimationResource  The resource id of the inAnimation.</span>
+</span><span class='line'><span class="cm">     * @param outAnimationResource The resource id of the outAnimation.</span>
+</span><span class='line'><span class="cm">     */</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">animateNext</span><span class="o">(</span><span class="n">Context</span> <span class="n">context</span><span class="o">,</span> <span class="kt">int</span> <span class="n">inAnimationResource</span><span class="o">,</span> <span class="kt">int</span> <span class="n">outAnimationResource</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">animateNext</span><span class="o">(</span><span class="n">AnimationUtils</span><span class="o">.</span><span class="na">loadAnimation</span><span class="o">(</span><span class="n">context</span><span class="o">,</span> <span class="n">inAnimationResource</span><span class="o">),</span>
+</span><span class='line'>                <span class="n">AnimationUtils</span><span class="o">.</span><span class="na">loadAnimation</span><span class="o">(</span><span class="n">context</span><span class="o">,</span> <span class="n">outAnimationResource</span><span class="o">));</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The view allows us to set two Animations which we will use to animate the views accordingly. Looking into
+the <a href="http://developer.android.com/reference/android/widget/ViewAnimator.html">ViewAnimator</a> implementation one can
+see that it&rsquo;s holding refference to both the <strong>In</strong> and the <strong>Out</strong> Animations, so there is no need for our new View to add more overhead to it.
+It is our responsability though to keep an eye on how many Animations we are loading and how we do it. Same as the <code>ViewAnimator</code>, the <code>MultipleViewSwitcher</code>
+can receive a new Animation by parameter or the resourceId of it which we will then load with <code>AnimationUtils.loadAnimation(context, animationResource)</code></p>
+
+<p>At this point we hace achieved all the goals of the wanted but there is a small annoying issue, when rotating the device we are not saving the
+current displayed child <code>ViewAnimator</code>does not do it either, so it would be the Activity/Fragment responsibility. I&rsquo;d much rather have this solved
+in the View so we are going to save the state of the View when rotation.</p>
+
+<h2>Saving the state of the view</h2>
+
+<p>Since our form is now composed by more than one view, it would be nice to save the displayed child on orientation changes. No one wants to move the device from portrait to landscape
+and realise that the form is now showing the initial page. This view is not just usable in forms, one can easily use it to handle the on boarding wizard of an application.
+Can you imagine how frustrated the user would be if after swiping through four screens, the device is rotated and the wizards needs to be completed from the beginning?</p>
+
+<p>Android uses <code>Parcelable</code>to save the <a href="http://developer.android.com/reference/android/view/View.html#onSaveInstanceState(">instance state</a>). I&rsquo;ve seen plenty of implementations
+creating their own Parcelable, etc&hellip; but the easiest way in my opinion is using a <a href="http://developer.android.com/reference/android/os/Bundle.html">Bundle</a> (which implements Parcelable)</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="n">Parcelable</span> <span class="nf">onSaveInstanceState</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Bundle</span> <span class="n">bundle</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">Bundle</span><span class="o">();</span>
+</span><span class='line'>        <span class="n">bundle</span><span class="o">.</span><span class="na">putParcelable</span><span class="o">(</span><span class="s">&quot;instanceState&quot;</span><span class="o">,</span> <span class="kd">super</span><span class="o">.</span><span class="na">onSaveInstanceState</span><span class="o">());</span>
+</span><span class='line'>        <span class="n">bundle</span><span class="o">.</span><span class="na">putInt</span><span class="o">(</span><span class="s">&quot;displayedChild&quot;</span><span class="o">,</span> <span class="n">getDisplayedChild</span><span class="o">());</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">bundle</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onRestoreInstanceState</span><span class="o">(</span><span class="n">Parcelable</span> <span class="n">state</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">state</span> <span class="k">instanceof</span> <span class="n">Bundle</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">Bundle</span> <span class="n">bundle</span> <span class="o">=</span> <span class="o">(</span><span class="n">Bundle</span><span class="o">)</span> <span class="n">state</span><span class="o">;</span>
+</span><span class='line'>            <span class="n">initialChild</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="na">getInt</span><span class="o">(</span><span class="s">&quot;displayedChild&quot;</span><span class="o">);</span>
+</span><span class='line'>            <span class="n">setDisplayedChild</span><span class="o">(</span><span class="n">initialChild</span><span class="o">);</span>
+</span><span class='line'>            <span class="n">state</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="na">getParcelable</span><span class="o">(</span><span class="s">&quot;instanceState&quot;</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>        <span class="kd">super</span><span class="o">.</span><span class="na">onRestoreInstanceState</span><span class="o">(</span><span class="n">state</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>When the device&rsquo;s orientation changes, the view itself will save it&rsquo;s instance state and restore the displayed child. It&rsquo;s very important that the View has it&rsquo;s own id defined
+in the XML layout, if it doesn&rsquo;t the <code>onSaveInstanceState()</code>and <code>onRestoreInstanceState()</code>won&rsquo;t be called and state won&rsquo;t be restored.</p>
+
+<h2>Show me the code</h2>
+
+<p>If this caught your attention, please check the source code for Part 3 <a href="https://github.com/malmstein/UglyForms/tree/step_three">already available on Github</a>.</p>
+
+<p>The next part will be last one and will add some love to the overall look and feel in addition to some interesting ideas about buttons and input keyboard handling.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Gonzalez</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2014-07-09T19:03:54+01:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>7:03 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/android/'>android</a>, <a class='category' href='/blog/categories/floatinghints/'>floatinghints</a>, <a class='category' href='/blog/categories/forms/'>forms</a>, <a class='category' href='/blog/categories/styling/'>styling</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://malmstein.github.io/blog/2014/07/09/your-forms-dont-need-to-be-ugly-part-3/" data-via="dggonzalez" data-counturl="http://malmstein.github.io/blog/2014/07/09/your-forms-dont-need-to-be-ugly-part-3/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/06/15/your-forms-dont-need-to-be-ugly-part-2/" title="Previous Post: Your forms don't need to be ugly Part 2">&laquo; Your forms don&#8217;t need to be ugly Part 2</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2014/07/26/one-month-using-a-standing-desk/" title="Next Post: One month using a standing desk">One month using a standing desk &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/09/21/control-the-media-player-using-gestures/">Using Gestures to Control the Media Player</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/09/how-to-use-a-textureview-to-display-a-video-with-custom-media-player-controls/">How to Use a TextureView to Display a Video With Custom Media Player Controls</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/07/26/one-month-using-a-standing-desk/">One Month Using a Standing Desk</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/07/09/your-forms-dont-need-to-be-ugly-part-3/">Your Forms Don&#8217;t Need to Be Ugly Part 3</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/06/15/your-forms-dont-need-to-be-ugly-part-2/">Your Forms Don&#8217;t Need to Be Ugly Part 2</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating&#8230;</li>
+  </ul>
+  
+  <a href="https://github.com/malmstein">@malmstein</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'malmstein',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/+DavidGonzálezNovoda?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - David Gonzalez -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'malmstein';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://malmstein.github.io/blog/2014/07/09/your-forms-dont-need-to-be-ugly-part-3/';
+        var disqus_url = 'http://malmstein.github.io/blog/2014/07/09/your-forms-dont-need-to-be-ugly-part-3/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

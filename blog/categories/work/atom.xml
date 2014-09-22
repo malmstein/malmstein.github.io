@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Work | David Gonzalez]]></title>
+  <link href="http://malmstein.github.io/blog/categories/work/atom.xml" rel="self"/>
+  <link href="http://malmstein.github.io/"/>
+  <updated>2014-09-22T18:19:20+01:00</updated>
+  <id>http://malmstein.github.io/</id>
+  <author>
+    <name><![CDATA[David Gonzalez]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[One Month Using a Standing Desk]]></title>
+    <link href="http://malmstein.github.io/blog/2014/07/26/one-month-using-a-standing-desk/"/>
+    <updated>2014-07-26T18:39:34+01:00</updated>
+    <id>http://malmstein.github.io/blog/2014/07/26/one-month-using-a-standing-desk</id>
+    <content type="html"><![CDATA[<p>Why not? That&rsquo;s what I said to myself. After reading a lot of <a href="http://www.nytimes.com/2012/12/02/business/stand-up-desks-gaining-favor-in-the-workplace.html?_r=0">interesting</a>
+posts and <a href="http://www.smithsonianmag.com/science-nature/five-health-benefits-standing-desks-180950259/">information</a> about standing desks
+I decided to give it a go. It can&rsquo;t harm, right? I mean worst case scenario one could just lay on one of the couches around the office and rest.
+Now, after one month using a standing desk I can&rsquo;t be clearer about it, I&rsquo;m not sitting anymore.</p>
+
+<!-- more -->
+
+
+<h2>U sure? That&rsquo;s really tiring, isn&rsquo;t it?</h2>
+
+<p>When I started thinking about it I was very sceptical, wasn&rsquo;t sure about it at all. The sole idea of standing the whole day was not pleasant,
+it was all too tiring.</p>
+
+<p>I&rsquo;ve been sitting around since I can recall, that includes all kinds of physical and not physical activities: eating, drinking, studying, reading and
+obviously, programming. Yes, we all stand up for our daily standup (yes, you are supposed to stand up in stand up meetings) but after that one
+quickly returns to the comfortable chair. That&rsquo;s where we drink our coffee, lay towards a side or if you are lucky enough to have one of those chairs, you
+can even lay back and make it look like you are really thinking about something meaningful.</p>
+
+<p>That was my case, the lucky one. It also means that my back was already getting the so-familiar shape of this guy:</p>
+
+<p><img class="center <a" src="href="http://3.bp.blogspot.com/-Sec0_UDOhZw/UgtcRkUcSkI/AAAAAAAAAWk/YzWo6WEvvkM/s1600/shutterstock_140199787+%5BConverted%5D.jpg">http://3.bp.blogspot.com/-Sec0_UDOhZw/UgtcRkUcSkI/AAAAAAAAAWk/YzWo6WEvvkM/s1600/shutterstock_140199787+%5BConverted%5D.jpg</a>&#8221;></p>
+
+<p>I know, you also have it don&rsquo;t you? Well I&rsquo;ve always had it and that&rsquo;s one of the reasons why the standing desk looked like a good idea.</p>
+
+<p>So I decided to give it a go. When making a development proposal at <a href="" title="http://www.novoda.com">Novoda</a> we tend to show three different scopes:</p>
+
+<ol>
+<li><strong>MVP or Minimun Viable Product:</strong> That&rsquo;s the minimun set of feature a client can expect to satisfy the business requirements.</li>
+<li><strong>MDP or Minimun Desirable Product:</strong> Takes 4 to 6 more sprints to complete, has all the features in the MVP, some exciting new
+ones and some really nice UI/UX improvements.</li>
+<li><strong>WOW:</strong> This is something worth featuring at Google Play, there is nothing like this in the market and all your competitors will be
+jealous of this product.</li>
+</ol>
+
+
+<h2>Minimun viable product or MVP</h2>
+
+<p>So I went on a mission. What&rsquo;s the MVP for a standing desk?</p>
+
+<p>As the name indicates, a standing desk requires the individual to be standing. Ideally your eyes would be at the same height as the screen and
+your arms should type the keyboard comfortably enough for 8 hours in that position.</p>
+
+<p>Yes, those are delivery boxes. A nice set of 4 delivery boxes, one for the screen, one for the laptop, another one for the keyboard and the last
+one for the mouse. All very ecological and environmental friendly</p>
+
+<p>I worked that way for two weeks, trying to figure out if I actually liked this whole thing of standing. And I have to say, the result was a complete
+surprise for me. After one week I could develop ten times faster, my productivity increased 100% and I always arrived on time&hellip; hell no&hellip; I freaking hated
+it! My feet were hurting the whole afternoon, the lunch break was indeed a break which my body used to rest and at the end of the day I was tired, really tired.</p>
+
+<p>So, the whole thing was actually working! No one should be tired of standing 9 hours, I&rsquo;m sorry to break your bubble but no, that&rsquo;s not normal nor healthy.</p>
+
+<h2>Minimun desirable product or MDP</h2>
+
+<p>The proof of concept was successful, it worked but it could also be improved enormously. After a few days the boxes under the keyboard and the mouse started
+to collapse and the posture was starting to get compromised. It was time to start thinking about new design iterations.</p>
+
+<p>Searching online one can found a <a href="http://lifehacker.com/five-best-standing-desks-1528244287">huge</a> amount of useful information and links about building or
+buying a standing desk. Finally, I decided that my next move would be building my own based on <a href="http://iamnotaprogrammer.com/Ikea-Standing-desk-for-22-dollars.html">this</a>.</p>
+
+<p><img class="center <a" src="href="https://raw.githubusercontent.com/malmstein/malmstein.github.io/master/images/standing_desk_1.jpg">https://raw.githubusercontent.com/malmstein/malmstein.github.io/master/images/standing_desk_1.jpg</a>&#8221;></p>
+
+<p><img class="center <a" src="href="https://raw.githubusercontent.com/malmstein/malmstein.github.io/master/images/standing_desk_2.jpg">https://raw.githubusercontent.com/malmstein/malmstein.github.io/master/images/standing_desk_2.jpg</a>&#8221;></p>
+
+<p><img class="center <a" src="href="https://raw.githubusercontent.com/malmstein/malmstein.github.io/master/images/standing_desk_3.jpg">https://raw.githubusercontent.com/malmstein/malmstein.github.io/master/images/standing_desk_3.jpg</a>&#8221;></p>
+
+<p>It&rsquo;s a pretty decent solution, €25 from Ikea in Berlin.</p>
+
+<h2>Some improvements</h2>
+
+<p>After a while the wrists started to feel a bit weird. The position had changed a bit compared to what I used to have in the MVP version and wasn&rsquo;t feeling
+very comfortable. So after searching online I found the best possible solutions, a <a href="http://www.amazon.de/gp/product/B004DANDN4/ref=oh_aui_detailpage_o00_s00?ie=UTF8&amp;psc=1">Wrist Pad</a>
+and a <a href="http://www.amazon.de/gp/product/B0053XC1J2/ref=oh_aui_detailpage_o00_s01?ie=UTF8&amp;psc=1">Mouse Pad</a>. The Grifiti wrist pad may be almost as
+expensive as the whole standing desk but the fact that it&rsquo;s higher than the rest of wrist pads out there made it the perfect choice. I&rsquo;m using a
+<a href="https://www.diatec.co.jp/en/det.php?prod_c=1320">Filco mechanical keyboard</a> (if you haven&rsquo;t tried one you should) and the hands position wasn&rsquo;t very
+pleasant until the wrist pad was there.</p>
+
+<p>After all, adding the pads to the total cost we are talking about <strong>€50</strong> for the whole thing. Considering that we spend between 9 and 10 hours a day
+sitting / standing in our desks I&rsquo;d say it&rsquo;s pretty affordable.</p>
+
+<h2>The conclusion</h2>
+
+<p>So it&rsquo;s been almost over a month and the results are great. It&rsquo;s not easy at the beginning, it&rsquo;s normal to get tired and feel that it&rsquo;s not worth it.
+I discovered that my shoes actually were not confortable at all, standing 9 on Converse may be very hipster but definitely not the best you can do
+for your feet health.</p>
+
+<p>Once you survive to the first week you&rsquo;ll start noticing how you tend to stand more and sit less, and not just in the office. One morning I suddenly
+found myself having breakfast while standing&hellip; that was too much but it&rsquo;s just an example that how natural it all can result in the end.</p>
+
+<p>If you try it please do let me know and if you have any other cool ideas / tips to make a better standing desk do share them too.</p>
+]]></content>
+  </entry>
+  
+</feed>

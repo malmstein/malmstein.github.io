@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Howto | David Gonzalez]]></title>
+  <link href="http://malmstein.github.io/blog/categories/howto/atom.xml" rel="self"/>
+  <link href="http://malmstein.github.io/"/>
+  <updated>2014-09-22T18:19:20+01:00</updated>
+  <id>http://malmstein.github.io/</id>
+  <author>
+    <name><![CDATA[David Gonzalez]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Blogging Again]]></title>
+    <link href="http://malmstein.github.io/blog/2014/06/07/blogging-again/"/>
+    <updated>2014-06-07T20:07:34+01:00</updated>
+    <id>http://malmstein.github.io/blog/2014/06/07/blogging-again</id>
+    <content type="html"><![CDATA[<p>After a couple of years being lazy and just reading what others wrote, I belive it&rsquo;s time to start blogging again. One could explain inspring stories about
+blogging and black holes but I&rsquo;m just going to explain why I chose Octopress over other blogging platforms and how I made it work for me.</p>
+
+<!-- more -->
+
+
+<h2>Why?</h2>
+
+<p>There are several blogging platforms out there, they all have their features and some of them are easier to use. The likes of <a href="https://wordpress.com/">Wordpress</a>, <a href="https://ghost.org/">Ghost</a>, <a href="https://medium.com/">Medium</a>, etc&hellip;
+are more than good options in order to start. In my case, I used Wordpress in the past, still use it for some other projects but I wanted to use something new for me.</p>
+
+<p>Markdown files are a great way of writing text, it won&rsquo;t be the best option if you are trying to write a novel but if you are familiar with Github you&rsquo;d probably
+have used them in the past. Octopress text editing is based on Markdown files, that was a plus. Octopress also supports Github Pages and the whole publishing process
+is based on Git, what else could you ask?</p>
+
+<h2>Installing Octopress</h2>
+
+<ol>
+<li>Install <a href="http://git-scm.com/">Git</a></li>
+<li>Install Ruby (1.9.3p194 using <a href="http://octopress.org/docs/setup/rbenv/">rbenv</a> when writing this post)</li>
+<li>Clone <a href="http://octopress.org/">Octopress</a></li>
+</ol>
+
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>git clone git://github.com/imathis/octopress.git octopress
+</span><span class='line'><span class="nv">$ </span><span class="nb">cd </span>octopress
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>Next, install dependencies.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>gem install bundler
+</span><span class='line'><span class="nv">$ </span>rbenv rehash
+</span><span class='line'><span class="nv">$ </span>bundle install
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>Install the default Octopress theme.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>rake install
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>At this point you have Octopress installed and the default theme installed, now we need to deploy it. Octopress supports deployment on GitHub pages
+and that&rsquo;s the method I chose.</p>
+
+<h2>Deploying to Github Pages</h2>
+
+<p>Github allows you to host a blog from <code>http://username.github.io</code>, where <code>username</code> is your Github username.</p>
+
+<p>Github Pages for users and organisations uses the master branch like the public directory on a web server, serving up the files at your Pages url <a href="http://username.github.io.">http://username.github.io.</a>
+As a result, you&rsquo;ll want to work on the source for your blog in the source branch and commit the generated content to the master branch. Octopress has a configuration task that helps you set all this up.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>rake setup_github_pages
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>The rake task will ask you for a URL of the Github repo. Copy the SSH or HTTPS URL from your newly created repository (e.g. git@github.com:username/username.github.io.git) and paste it in as a response.</p>
+
+<p>Done, at this point your Github page is ready to be deployed, but first we need to generate the blog.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>rake generate
+</span><span class='line'><span class="nv">$ </span>rake deploy
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>This will generate your blog, copy the generated files into _deploy/, add them to git, commit and push them up to the master branch. In a few seconds you should get an email from Github telling you that your commit has been received and will be published on your site.</p>
+
+<p>As you would do with any other git based project, after adding some code you&rsquo;d add it and commit it.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>git add .
+</span><span class='line'><span class="nv">$ </span>git commit -m <span class="p">&amp;</span>lsquo<span class="p">;</span>your commit message<span class="p">&amp;</span>rsquo<span class="p">;</span>
+</span><span class='line'><span class="nv">$ </span>git push origin <span class="nb">source</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<h2>Using a custom domain</h2>
+
+<p>First thing that needs to be added is a <code>CNAME</code> in the blog&rsquo;s source.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span><span class="nb">echo</span> <span class="p">&amp;</span>lsquo<span class="p">;</span>www.malmstein.com<span class="p">&amp;</span>rsquo<span class="p">;</span> &gt;&gt; <span class="nb">source</span>/CNAME
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>I&rsquo;m using a main domain, so all I had to do is modifying the DNS host and add a new <code>CNAME</code> record for <code>www</code> pointing to <code>malmstein.github.io</code></p>
+
+<p>Done!</p>
+
+<p>Further reading and more detailed instruction can be found in the <a href="http://octopress.org/docs/configuring/">Octopress</a> documentation.
+There is also a very useful <a href="https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet">cheat sheet</a> for markdown files.</p>
+]]></content>
+  </entry>
+  
+</feed>
