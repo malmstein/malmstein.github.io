@@ -4,7 +4,7 @@
   <title><![CDATA[David Gonzalez]]></title>
   <link href="http://malmstein.github.io/atom.xml" rel="self"/>
   <link href="http://malmstein.github.io/"/>
-  <updated>2014-09-23T09:03:52+01:00</updated>
+  <updated>2014-09-23T09:08:57+01:00</updated>
   <id>http://malmstein.github.io/</id>
   <author>
     <name><![CDATA[David Gonzalez]]></name>
@@ -18,7 +18,7 @@
     <link href="http://malmstein.github.io/blog/2014/09/21/control-the-media-player-using-gestures/"/>
     <updated>2014-09-21T19:24:59+01:00</updated>
     <id>http://malmstein.github.io/blog/2014/09/21/control-the-media-player-using-gestures</id>
-    <content type="html"><![CDATA[<p>In the previous post we explained a way of displaying a <a href="http://www.malmstein.com/blog/2014/08/09/how-to-use-a-textureview-to-display-a-video-with-custom-media-player-controls/">customised Media Player controller</a>,
+    <content type="html"><![CDATA[<p>In the previous post we explained a way of displaying a <a href="http://www.malmstein.com/blog/2014/08/09/how-to-use-a-textureview-to-display-a-video-with-custom-media-player-controls">customised Media Player controller</a>,
 which as we saw, it&rsquo;s very useful if we need customised actions or UI for that controller.</p>
 
 <p>This time we want to go a step forward and introduce a new way of interacting with the Media Player.
@@ -301,7 +301,7 @@ which one will use to navigate horizontally through a view pager.</p>
 <p>There is a new constant introduced here, the <code>minFlingVelocity</code>. Since the fling is considered to
 be a fast movement, we need to make sure that the motion event velocity is fast enough.</p>
 
-<p>How do we get these constant values? Android conveniently has a  <a href="http://developer.android.com/reference/android/view/ViewConfiguration.html">ViewConfiguration</a>
+<p>How do we get these constant values? Android conveniently has a  <a href="" title="http://developer.android.com/reference/android/view/ViewConfiguration.html">ViewConfiguration</a>
 class with standard constants used in the UI for timeouts, sizes, and distances.</p>
 
 <h2>The Controller View</h2>
@@ -351,7 +351,7 @@ the screen and we can also detect the type of gesture that is happening.</p>
 
 <p>For this first attempt we will only act on the video progress bar, which is a pretty straigh
 forward thing to do since we already have a <code>seekListener</code> which acts on the media player. The
-only thing we need to do is scaling the user movement compared to the <a href="http://developer.android.com/reference/android/widget/SeekBar.html">SeekBar</a>.</p>
+only thing we need to do is scaling the user movement compared to the <a href="" title="http://developer.android.com/reference/android/widget/SeekBar.html">SeekBar</a>.</p>
 
 <p>The interface is giving us a <strong>delta</strong>, which is the amount of pixels of the gesture. We are
 taking as reference the whole <code>View</code> width, that way when the user scrolls the whole width of
