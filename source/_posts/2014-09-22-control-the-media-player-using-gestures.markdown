@@ -7,14 +7,14 @@ categories: fenster, gestures, mediaplayer
 ---
 
 
-In the previous post we explained a way of displaying a [customised Media Player controller]("http://www.malmstein.com/blog/2014/08/09/how-to-use-a-textureview-to-display-a-video-with-custom-media-player-controls/"),
+In the previous post we explained a way of displaying a [customised Media Player controller](http://www.malmstein.com/blog/2014/08/09/how-to-use-a-textureview-to-display-a-video-with-custom-media-player-controls),
 which as we saw, it's very useful if we need customised actions or UI for that controller.
 
 This time we want to go a step forward and introduce a new way of interacting with the Media Player.
 The idea is to use gestures in order to lower or raise the volume, seek forward and backwards
 and to skip the video for 30 seconds.
 
-I'm a big fan of [MX Player]("https://play.google.com/store/apps/details?id=com.mxtech.videoplayer.ad") and
+I'm a big fan of [MX Player](https://play.google.com/store/apps/details?id=com.mxtech.videoplayer.ad) and
 always wanted to implement the gesture detection that they introduced.
 
 {% img https://raw.githubusercontent.com/malmstein/Fenster/master/art/fenster_gesture.gif %}
@@ -30,7 +30,7 @@ is a sequence of touch events and each one of them will fire `onTouchEvent()`.
 
 A gesture starts when the user first touches the screen, continues as the system tracks the
 position of the user's finger(s), and ends by capturing the final event of the user's fingers
-leaving the screen. Throughout this interaction, the [MotionEvent]("http://developer.android.com/reference/android/view/MotionEvent.html")
+leaving the screen. Throughout this interaction, the [MotionEvent](http://developer.android.com/reference/android/view/MotionEvent.html)
 delivered to `onTouchEvent()` provides the details of every interaction.
 
 {% img https://raw.githubusercontent.com/malmstein/Fenster/master/art/basic_multitouch.gif %}
@@ -47,12 +47,12 @@ scrolling with two fingers or two finger double tap.
 
 Now that we know how events are described on Android, it's time to understand how gestures are
 detected and how to apply it to our purpose. For that matter, Android provides the
-[GestureDetector]("http://developer.android.com/reference/android/view/GestureDetector.html")
+[GestureDetector](http://developer.android.com/reference/android/view/GestureDetector.html)
 
 There are two different ways of intercepting gestures on Android. One can use
-the [SimpleGestureListener]("http://developer.android.com/reference/android/view/GestureDetector.SimpleOnGestureListener.html") class,
-which wraps around the interfaces [OnGestureListener]("http://developer.android.com/reference/android/view/GestureDetector.OnGestureListener.html")
-and [OnDoubleTapListener]("http://developer.android.com/reference/android/view/GestureDetector.OnDoubleTapListener.html").
+the [SimpleGestureListener](http://developer.android.com/reference/android/view/GestureDetector.SimpleOnGestureListener.html) class,
+which wraps around the interfaces [OnGestureListener](http://developer.android.com/reference/android/view/GestureDetector.OnGestureListener.html)
+and [OnDoubleTapListener](http://developer.android.com/reference/android/view/GestureDetector.OnDoubleTapListener.html).
 Think about it as a convenience class to extend when you only want to listen for a subset
 of all the gestures.
 
@@ -119,7 +119,7 @@ Once we detect one of these events, the `MediaPlayerController` will react by ch
 progress bar, raising the volume or skipping. Pretty straight forward right? Let's actually see
 where the magic happens, the gesture detection.
 
-As said earlier, the [OnGestureListener]("http://developer.android.com/reference/android/view/GestureDetector.OnGestureListener.html")
+As said earlier, the [OnGestureListener](http://developer.android.com/reference/android/view/GestureDetector.OnGestureListener.html)
 provides the interfaces we are interested in, let's start by detecting the **Horizontal** and **Vertical** scrolls.
 
 {% codeblock lang:java %}
@@ -279,13 +279,13 @@ If you want to experience further in detecting gestures and multitouch events, d
 hesitate in importing two projects from the SDK samples: `BasicGestureDetect` and `BasicMultitouch`.
 Yeah, they are basic, but it establishes the foundations of what we are going to do here.
 
-There is also a pretty good training document about [Gesture Detection]("http://developer.android.com/training/gestures/detector.html") in
+There is also a pretty good training document about [Gesture Detection](http://developer.android.com/training/gestures/detector.html) in
 the Android Developer website.
 
 ## Fenster Library update
 
 In the next post we'll use the same techniques to act on several other aspects of the
-`MediaPlayer`. In the meantime, the [Fenster]("https://github.com/malmstein/fenster") library has
+`MediaPlayer`. In the meantime, the [Fenster](https://github.com/malmstein/fenster) library has
 been updated with all the parts of this post and the demo project also contains an example of
 gesture detection against the `MediaPlayer`.
 
