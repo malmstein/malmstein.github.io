@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Mediaplayer | David Gonzalez]]></title>
   <link href="http://malmstein.github.io/blog/categories/mediaplayer/atom.xml" rel="self"/>
   <link href="http://malmstein.github.io/"/>
-  <updated>2014-09-22T18:22:30+01:00</updated>
+  <updated>2014-09-23T09:03:52+01:00</updated>
   <id>http://malmstein.github.io/</id>
   <author>
     <name><![CDATA[David Gonzalez]]></name>
@@ -18,14 +18,14 @@
     <link href="http://malmstein.github.io/blog/2014/09/21/control-the-media-player-using-gestures/"/>
     <updated>2014-09-21T19:24:59+01:00</updated>
     <id>http://malmstein.github.io/blog/2014/09/21/control-the-media-player-using-gestures</id>
-    <content type="html"><![CDATA[<p>In the previous post we explained a way of displaying a <a href="" title="http://www.malmstein.com/blog/2014/08/09/how-to-use-a-textureview-to-display-a-video-with-custom-media-player-controls/">customised Media Player controller</a>,
+    <content type="html"><![CDATA[<p>In the previous post we explained a way of displaying a <a href="http://www.malmstein.com/blog/2014/08/09/how-to-use-a-textureview-to-display-a-video-with-custom-media-player-controls/">customised Media Player controller</a>,
 which as we saw, it&rsquo;s very useful if we need customised actions or UI for that controller.</p>
 
 <p>This time we want to go a step forward and introduce a new way of interacting with the Media Player.
 The idea is to use gestures in order to lower or raise the volume, seek forward and backwards
 and to skip the video for 30 seconds.</p>
 
-<p>I&rsquo;m a big fan of <a href="" title="https://play.google.com/store/apps/details?id=com.mxtech.videoplayer.ad">MX Player</a> and
+<p>I&rsquo;m a big fan of <a href="https://play.google.com/store/apps/details?id=com.mxtech.videoplayer.ad">MX Player</a> and
 always wanted to implement the gesture detection that they introduced.</p>
 
 <p><img class="<a" src="href="https://raw.githubusercontent.com/malmstein/Fenster/master/art/fenster_gesture.gif">https://raw.githubusercontent.com/malmstein/Fenster/master/art/fenster_gesture.gif</a>&#8221;></p>
@@ -42,7 +42,7 @@ is a sequence of touch events and each one of them will fire <code>onTouchEvent(
 
 <p>A gesture starts when the user first touches the screen, continues as the system tracks the
 position of the user&rsquo;s finger(s), and ends by capturing the final event of the user&rsquo;s fingers
-leaving the screen. Throughout this interaction, the <a href="" title="http://developer.android.com/reference/android/view/MotionEvent.html">MotionEvent</a>
+leaving the screen. Throughout this interaction, the <a href="http://developer.android.com/reference/android/view/MotionEvent.html">MotionEvent</a>
 delivered to <code>onTouchEvent()</code> provides the details of every interaction.</p>
 
 <p><img class="<a" src="href="https://raw.githubusercontent.com/malmstein/Fenster/master/art/basic_multitouch.gif">https://raw.githubusercontent.com/malmstein/Fenster/master/art/basic_multitouch.gif</a>&#8221;></p>
@@ -59,12 +59,12 @@ scrolling with two fingers or two finger double tap.</p>
 
 <p>Now that we know how events are described on Android, it&rsquo;s time to understand how gestures are
 detected and how to apply it to our purpose. For that matter, Android provides the
-<a href="" title="http://developer.android.com/reference/android/view/GestureDetector.html">GestureDetector</a></p>
+<a href="http://developer.android.com/reference/android/view/GestureDetector.html">GestureDetector</a></p>
 
 <p>There are two different ways of intercepting gestures on Android. One can use
-the <a href="" title="http://developer.android.com/reference/android/view/GestureDetector.SimpleOnGestureListener.html">SimpleGestureListener</a> class,
-which wraps around the interfaces <a href="" title="http://developer.android.com/reference/android/view/GestureDetector.OnGestureListener.html">OnGestureListener</a>
-and <a href="" title="http://developer.android.com/reference/android/view/GestureDetector.OnDoubleTapListener.html">OnDoubleTapListener</a>.
+the <a href="http://developer.android.com/reference/android/view/GestureDetector.SimpleOnGestureListener.html">SimpleGestureListener</a> class,
+which wraps around the interfaces <a href="http://developer.android.com/reference/android/view/GestureDetector.OnGestureListener.html">OnGestureListener</a>
+and <a href="http://developer.android.com/reference/android/view/GestureDetector.OnDoubleTapListener.html">OnDoubleTapListener</a>.
 Think about it as a convenience class to extend when you only want to listen for a subset
 of all the gestures.</p>
 
@@ -162,7 +162,7 @@ in the following interface</p>
 progress bar, raising the volume or skipping. Pretty straight forward right? Let&rsquo;s actually see
 where the magic happens, the gesture detection.</p>
 
-<p>As said earlier, the <a href="" title="http://developer.android.com/reference/android/view/GestureDetector.OnGestureListener.html">OnGestureListener</a>
+<p>As said earlier, the <a href="http://developer.android.com/reference/android/view/GestureDetector.OnGestureListener.html">OnGestureListener</a>
 provides the interfaces we are interested in, let&rsquo;s start by detecting the <strong>Horizontal</strong> and <strong>Vertical</strong> scrolls.</p>
 
 <p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
@@ -317,7 +317,7 @@ which one will use to navigate horizontally through a view pager.</p>
 <p>There is a new constant introduced here, the <code>minFlingVelocity</code>. Since the fling is considered to
 be a fast movement, we need to make sure that the motion event velocity is fast enough.</p>
 
-<p>How do we get these constant values? Android conveniently has a  <a href="" title="http://developer.android.com/reference/android/view/ViewConfiguration.html">ViewConfiguration</a>
+<p>How do we get these constant values? Android conveniently has a  <a href="http://developer.android.com/reference/android/view/ViewConfiguration.html">ViewConfiguration</a>
 class with standard constants used in the UI for timeouts, sizes, and distances.</p>
 
 <h2>The Controller View</h2>
@@ -371,7 +371,7 @@ the screen and we can also detect the type of gesture that is happening.</p>
 
 <p>For this first attempt we will only act on the video progress bar, which is a pretty straigh
 forward thing to do since we already have a <code>seekListener</code> which acts on the media player. The
-only thing we need to do is scaling the user movement compared to the <a href="" title="http://developer.android.com/reference/android/widget/SeekBar.html">SeekBar</a>.</p>
+only thing we need to do is scaling the user movement compared to the <a href="http://developer.android.com/reference/android/widget/SeekBar.html">SeekBar</a>.</p>
 
 <p>The interface is giving us a <strong>delta</strong>, which is the amount of pixels of the gesture. We are
 taking as reference the whole <code>View</code> width, that way when the user scrolls the whole width of
@@ -434,13 +434,13 @@ need to take into consideration the <strong>MAX</strong> parameter applied to th
 hesitate in importing two projects from the SDK samples: <code>BasicGestureDetect</code> and <code>BasicMultitouch</code>.
 Yeah, they are basic, but it establishes the foundations of what we are going to do here.</p>
 
-<p>There is also a pretty good training document about <a href="" title="http://developer.android.com/training/gestures/detector.html">Gesture Detection</a> in
+<p>There is also a pretty good training document about <a href="http://developer.android.com/training/gestures/detector.html">Gesture Detection</a> in
 the Android Developer website.</p>
 
 <h2>Fenster Library update</h2>
 
 <p>In the next post we&rsquo;ll use the same techniques to act on several other aspects of the
-<code>MediaPlayer</code>. In the meantime, the <a href="" title="https://github.com/malmstein/fenster">Fenster</a> library has
+<code>MediaPlayer</code>. In the meantime, the <a href="https://github.com/malmstein/fenster">Fenster</a> library has
 been updated with all the parts of this post and the demo project also contains an example of
 gesture detection against the <code>MediaPlayer</code>.</p>
 
