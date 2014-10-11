@@ -4,7 +4,7 @@
   <title><![CDATA[David Gonzalez]]></title>
   <link href="http://malmstein.github.io/atom.xml" rel="self"/>
   <link href="http://malmstein.github.io/"/>
-  <updated>2014-10-11T13:05:40+01:00</updated>
+  <updated>2014-10-11T19:16:39+01:00</updated>
   <id>http://malmstein.github.io/</id>
   <author>
     <name><![CDATA[David Gonzalez]]></name>
@@ -14,10 +14,10 @@
 
   
   <entry>
-    <title type="html"><![CDATA[Adding Multitouch Gestures to Fenster]]></title>
-    <link href="http://malmstein.github.io/blog/2014/09/27/all-your-gestures-belong-to-me/"/>
-    <updated>2014-09-27T19:12:51+01:00</updated>
-    <id>http://malmstein.github.io/blog/2014/09/27/all-your-gestures-belong-to-me</id>
+    <title type="html"><![CDATA[All Your Gestures Belong to Fenster]]></title>
+    <link href="http://malmstein.github.io/blog/2014/10/11/all-your-gestures-belong-to-fenster/"/>
+    <updated>2014-10-11T14:12:51+01:00</updated>
+    <id>http://malmstein.github.io/blog/2014/10/11/all-your-gestures-belong-to-fenster</id>
     <content type="html"><![CDATA[<p>In the <a href="www.malmstein.com/blog/2014/09/21/control-the-media-player-using-gestures/">previous post</a>
 we showed how to implement some basic gestures and control the <code>MediaPlayer</code>.</p>
 
@@ -26,7 +26,7 @@ control the progress of a video but that&rsquo;s not enough. If we want full con
 <code>MediaPlayer</code> we need to be able to change the volume, adjust the brightness and skip the
 video forward and backwards.</p>
 
-<p><img src="https://raw.githubusercontent.com/malmstein/Fenster/master/art/multitouch.gif"></p>
+<p><img src="https://raw.githubusercontent.com/malmstein/fenster/master/art/multitouch.gif"></p>
 
 <!-- more -->
 
@@ -166,7 +166,7 @@ Currently, Android doesn&rsquo;t make it to easy for the user to do so and that&
 that goes from 0 to 255. In order to change it, we just need to update the system setting with its new value.</p>
 
 <p>Since we want to make it easy and modular, there is now a new class which will handle the
-brightness update, the <a href="https://github.com/malmstein/fenster/blob/master/library/src/main/java/com/malmstein/fenster/gestures/FensterGestureControllerView.java">BrightnessHelper</a>.
+brightness update, the <a href="https://github.com/malmstein/fenster/blob/master/library/src/main/java/com/malmstein/fenster/helper/BrightnessHelper.java">BrightnessHelper</a>.
 It just exposes a static method which needs a <code>Context</code> and the integer value with the new brightness.</p>
 
 <figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
@@ -217,6 +217,22 @@ to the user, we&rsquo;ll use a <code>SeekBarChangeListener</code> to update the 
 </span><span class='line'>    <span class="n">brightnessListener</span><span class="o">.</span><span class="na">onBrightnessFinishedDragging</span><span class="o">();</span>
 </span><span class='line'>  <span class="o">}</span>
 </span><span class='line'><span class="o">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Skipping the video</h2>
+
+<p>The video skipping is pretty straight forward since the timeframe we are going to skip the video
+forward or backwards is fixed. We just need to update the <code>SeekBar</code> progress:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="kt">void</span> <span class="nf">skipVideoForward</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">skipUnit</span> <span class="o">=</span> <span class="n">mProgress</span><span class="o">.</span><span class="na">getProgress</span><span class="o">()</span> <span class="o">+</span> <span class="n">SKIP_VIDEO_PROGRESS</span><span class="o">;</span>
+</span><span class='line'>    <span class="n">mSeekListener</span><span class="o">.</span><span class="na">onProgressChanged</span><span class="o">(</span><span class="n">mProgress</span><span class="o">,</span> <span class="n">skipUnit</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
 </span></code></pre></td></tr></table></div></figure>
 
 
@@ -292,21 +308,52 @@ volume and two or more for the brightness.</p>
 </span></code></pre></td></tr></table></div></figure>
 
 
-<h2>Skipping the video</h2>
+<h1>Translating the gesture to the view</h1>
 
-<p>The video skipping is pretty straight forward since the timeframe we are going to skip the video
-forward or backwards is fixed. We just need to update the <code>SeekBar</code> progress:</p>
+<p>The approach is to translate the gestures on top the of <code>FensterGestureControllerView</code> into the
+seekbars. Ideally, when making a gesture across the whole width or height of the <code>View</code> we&rsquo;ll
+be also updating the <code>Seekbar</code> through it&rsquo;s whole range.</p>
+
+<p>To do so, we need to use the movement delta and apply a scale to the <code>Seekbar</code>. Of course, we
+also need to take into account the <strong>max</strong> value of the <code>Seekbar</code>.</p>
 
 <figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
 <span class='line-number'>3</span>
 <span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="kt">void</span> <span class="nf">skipVideoForward</span><span class="o">()</span> <span class="o">{</span>
-</span><span class='line'>    <span class="kt">int</span> <span class="n">skipUnit</span> <span class="o">=</span> <span class="n">mProgress</span><span class="o">.</span><span class="na">getProgress</span><span class="o">()</span> <span class="o">+</span> <span class="n">SKIP_VIDEO_PROGRESS</span><span class="o">;</span>
-</span><span class='line'>    <span class="n">mSeekListener</span><span class="o">.</span><span class="na">onProgressChanged</span><span class="o">(</span><span class="n">mProgress</span><span class="o">,</span> <span class="n">skipUnit</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="kt">int</span> <span class="nf">extractDeltaScale</span><span class="o">(</span><span class="kt">int</span> <span class="n">availableSpace</span><span class="o">,</span> <span class="kt">float</span> <span class="n">deltaX</span><span class="o">,</span> <span class="n">SeekBar</span> <span class="n">seekbar</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="o">(</span><span class="kt">int</span><span class="o">)</span> <span class="n">deltaX</span><span class="o">;</span>
+</span><span class='line'>    <span class="kt">float</span> <span class="n">scale</span><span class="o">;</span>
+</span><span class='line'>    <span class="kt">float</span> <span class="n">progress</span> <span class="o">=</span> <span class="n">seekbar</span><span class="o">.</span><span class="na">getProgress</span><span class="o">();</span>
+</span><span class='line'>    <span class="kd">final</span> <span class="kt">int</span> <span class="n">max</span> <span class="o">=</span> <span class="n">seekbar</span><span class="o">.</span><span class="na">getMax</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">x</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">scale</span> <span class="o">=</span> <span class="o">(</span><span class="kt">float</span><span class="o">)</span> <span class="o">(</span><span class="n">x</span><span class="o">)</span> <span class="o">/</span> <span class="o">(</span><span class="kt">float</span><span class="o">)</span> <span class="o">(</span><span class="n">max</span> <span class="o">-</span> <span class="n">availableSpace</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">progress</span> <span class="o">=</span> <span class="n">progress</span> <span class="o">-</span> <span class="o">(</span><span class="n">scale</span> <span class="o">*</span> <span class="n">progress</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">scale</span> <span class="o">=</span> <span class="o">(</span><span class="kt">float</span><span class="o">)</span> <span class="o">(</span><span class="n">x</span><span class="o">)</span> <span class="o">/</span> <span class="o">(</span><span class="kt">float</span><span class="o">)</span> <span class="n">availableSpace</span><span class="o">;</span>
+</span><span class='line'>        <span class="n">progress</span> <span class="o">+=</span> <span class="n">scale</span> <span class="o">*</span> <span class="n">max</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">return</span> <span class="o">(</span><span class="kt">int</span><span class="o">)</span> <span class="n">progress</span><span class="o">;</span>
 </span><span class='line'><span class="o">}</span>
 </span></code></pre></td></tr></table></div></figure>
 
+
+<p>The <strong>available space</strong> corresponds to the size of the <code>FensterGestureControllerView</code>. The width
+if the movement is horizontal or the height in case it&rsquo;s a vertical movement.</p>
 
 <h1>Next steps</h1>
 

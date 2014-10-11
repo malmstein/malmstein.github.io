@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
 
-  <title><![CDATA[Category: Mediaplayer, | David Gonzalez]]></title>
-  <link href="http://malmstein.github.io/blog/categories/mediaplayer/atom.xml" rel="self"/>
+  <title><![CDATA[Category: Seekbar | David Gonzalez]]></title>
+  <link href="http://malmstein.github.io/blog/categories/seekbar/atom.xml" rel="self"/>
   <link href="http://malmstein.github.io/"/>
   <updated>2014-10-11T19:16:39+01:00</updated>
   <id>http://malmstein.github.io/</id>

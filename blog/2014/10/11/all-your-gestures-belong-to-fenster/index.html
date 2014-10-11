@@ -5,7 +5,7 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Adding Multitouch Gestures to Fenster - David Gonzalez</title>
+  <title>All Your Gestures Belong to Fenster - David Gonzalez</title>
   <meta name="author" content="David Gonzalez">
 
   
@@ -19,7 +19,7 @@ we showed how to implement some basic gestures and control the MediaPlayer. Toda
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://malmstein.github.io/blog/2014/09/27/all-your-gestures-belong-to-me">
+  <link rel="canonical" href="http://malmstein.github.io/blog/2014/10/11/all-your-gestures-belong-to-fenster">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="David Gonzalez" type="application/atom+xml">
@@ -83,7 +83,7 @@ we showed how to implement some basic gestures and control the MediaPlayer. Toda
   
   <header>
     
-      <h1 class="entry-title">Adding Multitouch Gestures to Fenster</h1>
+      <h1 class="entry-title">All Your Gestures Belong to Fenster</h1>
     
     
       <p class="meta">
@@ -92,7 +92,7 @@ we showed how to implement some basic gestures and control the MediaPlayer. Toda
 
 
 
-<time class='entry-date' datetime='2014-09-27T19:12:51+01:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>7:12 pm</span></time>
+<time class='entry-date' datetime='2014-10-11T14:12:51+01:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>2:12 pm</span></time>
         
       </p>
     
@@ -107,7 +107,7 @@ control the progress of a video but that&rsquo;s not enough. If we want full con
 <code>MediaPlayer</code> we need to be able to change the volume, adjust the brightness and skip the
 video forward and backwards.</p>
 
-<p><img src="https://raw.githubusercontent.com/malmstein/Fenster/master/art/multitouch.gif"></p>
+<p><img src="https://raw.githubusercontent.com/malmstein/fenster/master/art/multitouch.gif"></p>
 
 <!-- more -->
 
@@ -247,7 +247,7 @@ Currently, Android doesn&rsquo;t make it to easy for the user to do so and that&
 that goes from 0 to 255. In order to change it, we just need to update the system setting with its new value.</p>
 
 <p>Since we want to make it easy and modular, there is now a new class which will handle the
-brightness update, the <a href="https://github.com/malmstein/fenster/blob/master/library/src/main/java/com/malmstein/fenster/gestures/FensterGestureControllerView.java">BrightnessHelper</a>.
+brightness update, the <a href="https://github.com/malmstein/fenster/blob/master/library/src/main/java/com/malmstein/fenster/helper/BrightnessHelper.java">BrightnessHelper</a>.
 It just exposes a static method which needs a <code>Context</code> and the integer value with the new brightness.</p>
 
 <figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
@@ -298,6 +298,22 @@ to the user, we&rsquo;ll use a <code>SeekBarChangeListener</code> to update the 
 </span><span class='line'>    <span class="n">brightnessListener</span><span class="o">.</span><span class="na">onBrightnessFinishedDragging</span><span class="o">();</span>
 </span><span class='line'>  <span class="o">}</span>
 </span><span class='line'><span class="o">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Skipping the video</h2>
+
+<p>The video skipping is pretty straight forward since the timeframe we are going to skip the video
+forward or backwards is fixed. We just need to update the <code>SeekBar</code> progress:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="kt">void</span> <span class="nf">skipVideoForward</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">skipUnit</span> <span class="o">=</span> <span class="n">mProgress</span><span class="o">.</span><span class="na">getProgress</span><span class="o">()</span> <span class="o">+</span> <span class="n">SKIP_VIDEO_PROGRESS</span><span class="o">;</span>
+</span><span class='line'>    <span class="n">mSeekListener</span><span class="o">.</span><span class="na">onProgressChanged</span><span class="o">(</span><span class="n">mProgress</span><span class="o">,</span> <span class="n">skipUnit</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
 </span></code></pre></td></tr></table></div></figure>
 
 
@@ -373,21 +389,52 @@ volume and two or more for the brightness.</p>
 </span></code></pre></td></tr></table></div></figure>
 
 
-<h2>Skipping the video</h2>
+<h1>Translating the gesture to the view</h1>
 
-<p>The video skipping is pretty straight forward since the timeframe we are going to skip the video
-forward or backwards is fixed. We just need to update the <code>SeekBar</code> progress:</p>
+<p>The approach is to translate the gestures on top the of <code>FensterGestureControllerView</code> into the
+seekbars. Ideally, when making a gesture across the whole width or height of the <code>View</code> we&rsquo;ll
+be also updating the <code>Seekbar</code> through it&rsquo;s whole range.</p>
+
+<p>To do so, we need to use the movement delta and apply a scale to the <code>Seekbar</code>. Of course, we
+also need to take into account the <strong>max</strong> value of the <code>Seekbar</code>.</p>
 
 <figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
 <span class='line-number'>3</span>
 <span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="kt">void</span> <span class="nf">skipVideoForward</span><span class="o">()</span> <span class="o">{</span>
-</span><span class='line'>    <span class="kt">int</span> <span class="n">skipUnit</span> <span class="o">=</span> <span class="n">mProgress</span><span class="o">.</span><span class="na">getProgress</span><span class="o">()</span> <span class="o">+</span> <span class="n">SKIP_VIDEO_PROGRESS</span><span class="o">;</span>
-</span><span class='line'>    <span class="n">mSeekListener</span><span class="o">.</span><span class="na">onProgressChanged</span><span class="o">(</span><span class="n">mProgress</span><span class="o">,</span> <span class="n">skipUnit</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="kt">int</span> <span class="nf">extractDeltaScale</span><span class="o">(</span><span class="kt">int</span> <span class="n">availableSpace</span><span class="o">,</span> <span class="kt">float</span> <span class="n">deltaX</span><span class="o">,</span> <span class="n">SeekBar</span> <span class="n">seekbar</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="o">(</span><span class="kt">int</span><span class="o">)</span> <span class="n">deltaX</span><span class="o">;</span>
+</span><span class='line'>    <span class="kt">float</span> <span class="n">scale</span><span class="o">;</span>
+</span><span class='line'>    <span class="kt">float</span> <span class="n">progress</span> <span class="o">=</span> <span class="n">seekbar</span><span class="o">.</span><span class="na">getProgress</span><span class="o">();</span>
+</span><span class='line'>    <span class="kd">final</span> <span class="kt">int</span> <span class="n">max</span> <span class="o">=</span> <span class="n">seekbar</span><span class="o">.</span><span class="na">getMax</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">x</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">scale</span> <span class="o">=</span> <span class="o">(</span><span class="kt">float</span><span class="o">)</span> <span class="o">(</span><span class="n">x</span><span class="o">)</span> <span class="o">/</span> <span class="o">(</span><span class="kt">float</span><span class="o">)</span> <span class="o">(</span><span class="n">max</span> <span class="o">-</span> <span class="n">availableSpace</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">progress</span> <span class="o">=</span> <span class="n">progress</span> <span class="o">-</span> <span class="o">(</span><span class="n">scale</span> <span class="o">*</span> <span class="n">progress</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">scale</span> <span class="o">=</span> <span class="o">(</span><span class="kt">float</span><span class="o">)</span> <span class="o">(</span><span class="n">x</span><span class="o">)</span> <span class="o">/</span> <span class="o">(</span><span class="kt">float</span><span class="o">)</span> <span class="n">availableSpace</span><span class="o">;</span>
+</span><span class='line'>        <span class="n">progress</span> <span class="o">+=</span> <span class="n">scale</span> <span class="o">*</span> <span class="n">max</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">return</span> <span class="o">(</span><span class="kt">int</span><span class="o">)</span> <span class="n">progress</span><span class="o">;</span>
 </span><span class='line'><span class="o">}</span>
 </span></code></pre></td></tr></table></div></figure>
 
+
+<p>The <strong>available space</strong> corresponds to the size of the <code>FensterGestureControllerView</code>. The width
+if the movement is horizontal or the height in case it&rsquo;s a vertical movement.</p>
 
 <h1>Next steps</h1>
 
@@ -409,12 +456,12 @@ them yourselves!</p>
 
 
 
-<time class='entry-date' datetime='2014-09-27T19:12:51+01:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>7:12 pm</span></time>
+<time class='entry-date' datetime='2014-10-11T14:12:51+01:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>2:12 pm</span></time>
       
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/fenster/'>fenster,</a>, <a class='category' href='/blog/categories/gestures/'>gestures,</a>, <a class='category' href='/blog/categories/mediaplayer/'>mediaplayer</a>
+    <a class='category' href='/blog/categories/fenster/'>fenster,</a>, <a class='category' href='/blog/categories/gestures/'>gestures,</a>, <a class='category' href='/blog/categories/mediaplayer/'>mediaplayer,</a>, <a class='category' href='/blog/categories/seekbar/'>seekbar</a>
   
 </span>
 
@@ -423,7 +470,7 @@ them yourselves!</p>
     
       <div class="sharing">
   
-  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://malmstein.github.io/blog/2014/09/27/all-your-gestures-belong-to-me/" data-via="dggonzalez" data-counturl="http://malmstein.github.io/blog/2014/09/27/all-your-gestures-belong-to-me/" >Tweet</a>
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://malmstein.github.io/blog/2014/10/11/all-your-gestures-belong-to-fenster/" data-via="dggonzalez" data-counturl="http://malmstein.github.io/blog/2014/10/11/all-your-gestures-belong-to-fenster/" >Tweet</a>
   
   
   
@@ -454,7 +501,7 @@ them yourselves!</p>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2014/09/27/all-your-gestures-belong-to-me/">Adding Multitouch Gestures to Fenster</a>
+        <a href="/blog/2014/10/11/all-your-gestures-belong-to-fenster/">All Your Gestures Belong to Fenster</a>
       </li>
     
       <li class="post">
@@ -537,8 +584,8 @@ them yourselves!</p>
       
         
         // var disqus_developer = 1;
-        var disqus_identifier = 'http://malmstein.github.io/blog/2014/09/27/all-your-gestures-belong-to-me/';
-        var disqus_url = 'http://malmstein.github.io/blog/2014/09/27/all-your-gestures-belong-to-me/';
+        var disqus_identifier = 'http://malmstein.github.io/blog/2014/10/11/all-your-gestures-belong-to-fenster/';
+        var disqus_url = 'http://malmstein.github.io/blog/2014/10/11/all-your-gestures-belong-to-fenster/';
         var disqus_script = 'embed.js';
       
     (function () {
