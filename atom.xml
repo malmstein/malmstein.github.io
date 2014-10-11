@@ -4,7 +4,7 @@
   <title><![CDATA[David Gonzalez]]></title>
   <link href="http://malmstein.github.io/atom.xml" rel="self"/>
   <link href="http://malmstein.github.io/"/>
-  <updated>2014-09-23T09:08:57+01:00</updated>
+  <updated>2014-10-11T13:05:40+01:00</updated>
   <id>http://malmstein.github.io/</id>
   <author>
     <name><![CDATA[David Gonzalez]]></name>
@@ -12,6 +12,309 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Adding Multitouch Gestures to Fenster]]></title>
+    <link href="http://malmstein.github.io/blog/2014/09/27/all-your-gestures-belong-to-me/"/>
+    <updated>2014-09-27T19:12:51+01:00</updated>
+    <id>http://malmstein.github.io/blog/2014/09/27/all-your-gestures-belong-to-me</id>
+    <content type="html"><![CDATA[<p>In the <a href="www.malmstein.com/blog/2014/09/21/control-the-media-player-using-gestures/">previous post</a>
+we showed how to implement some basic gestures and control the <code>MediaPlayer</code>.</p>
+
+<p>Today we are going a step further by implementing multitouch gestures. So far we can
+control the progress of a video but that&rsquo;s not enough. If we want full control over the
+<code>MediaPlayer</code> we need to be able to change the volume, adjust the brightness and skip the
+video forward and backwards.</p>
+
+<p><img src="https://raw.githubusercontent.com/malmstein/Fenster/master/art/multitouch.gif"></p>
+
+<!-- more -->
+
+
+<p>The <code>MediaPlayerController</code> source code is getting bigger and bigger so it&rsquo;s very important to keep
+things as reusable and clean as possible. For that reason, tasks like update the volume
+or adjusting the brightness can be done from their own components, in these case, <a href="http://developer.android.com/reference/android/widget/SeekBar.html">SeekBar</a>.</p>
+
+<p>With these new <code>Views</code>, one will be able to just import and use these small controllers without having
+to import the whole <code>MediaPlayerController</code>, just trying to make things easy here!</p>
+
+<h1>Volume SeekBar</h1>
+
+<p>Taking advantage of the gestures, we are also going to update the volume&hellip; how do we do that?
+There is now a new component in <a href="https://github.com/malmstein/fenster">Fenster</a> called <a href="https://github.com/malmstein/fenster">VolumeSeekBar</a>,
+a <code>SeekBar</code> which updates the volume of the <a href="http://developer.android.com/reference/android/media/AudioManager.html">AudioManager</a>.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="kt">void</span> <span class="nf">initialise</span><span class="o">(</span><span class="kd">final</span> <span class="n">Listener</span> <span class="n">volumeListener</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">this</span><span class="o">.</span><span class="na">audioManager</span> <span class="o">=</span> <span class="o">(</span><span class="n">AudioManager</span><span class="o">)</span> <span class="n">getContext</span><span class="o">().</span><span class="na">getSystemService</span><span class="o">(</span><span class="n">Context</span><span class="o">.</span><span class="na">AUDIO_SERVICE</span><span class="o">);</span>
+</span><span class='line'>  <span class="k">this</span><span class="o">.</span><span class="na">volumeListener</span> <span class="o">=</span> <span class="n">volumeListener</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">this</span><span class="o">.</span><span class="na">setMax</span><span class="o">(</span><span class="n">audioManager</span><span class="o">.</span><span class="na">getStreamMaxVolume</span><span class="o">(</span><span class="n">AudioManager</span><span class="o">.</span><span class="na">STREAM_MUSIC</span><span class="o">));</span>
+</span><span class='line'>  <span class="k">this</span><span class="o">.</span><span class="na">setProgress</span><span class="o">(</span><span class="n">audioManager</span><span class="o">.</span><span class="na">getStreamVolume</span><span class="o">(</span><span class="n">AudioManager</span><span class="o">.</span><span class="na">STREAM_MUSIC</span><span class="o">));</span>
+</span><span class='line'>  <span class="k">this</span><span class="o">.</span><span class="na">setOnSeekBarChangeListener</span><span class="o">(</span><span class="n">volumeSeekListener</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Here you can see the public method to initialise the <code>View</code>, the only thing we need to pass is
+the <code>Listener</code> which will notify when the view is being dragged.</p>
+
+<p>The <code>AudioManager</code> is the object which is in charge of the volume, <code>setStreamVolume()</code> is the
+method which is exposed for that matter. Since we want to update them based on the changes
+on the <code>SeekBar</code>, the <code>SeekBarChangeListener</code> is the way we want to go.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="kd">final</span> <span class="n">OnSeekBarChangeListener</span> <span class="n">volumeSeekListener</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">OnSeekBarChangeListener</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>  <span class="nd">@Override</span>
+</span><span class='line'>  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onProgressChanged</span><span class="o">(</span><span class="n">SeekBar</span> <span class="n">seekBar</span><span class="o">,</span> <span class="kt">int</span> <span class="n">vol</span><span class="o">,</span> <span class="kt">boolean</span> <span class="n">fromUser</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">audioManager</span><span class="o">.</span><span class="na">setStreamVolume</span><span class="o">(</span><span class="n">AudioManager</span><span class="o">.</span><span class="na">STREAM_MUSIC</span><span class="o">,</span> <span class="n">vol</span><span class="o">,</span> <span class="mi">0</span><span class="o">);</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nd">@Override</span>
+</span><span class='line'>  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onStartTrackingTouch</span><span class="o">(</span><span class="n">SeekBar</span> <span class="n">seekBar</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">volumeListener</span><span class="o">.</span><span class="na">onVolumeStartedDragging</span><span class="o">();</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nd">@Override</span>
+</span><span class='line'>  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onStopTrackingTouch</span><span class="o">(</span><span class="n">SeekBar</span> <span class="n">seekBar</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">volumeListener</span><span class="o">.</span><span class="na">onVolumeFinishedDragging</span><span class="o">();</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>As you can see, we are also notifying the root controller that some dragging is going on.
+This will be used in order to prevent the controller from being hidden while the user is
+dragging the <code>Seekbar</code>.</p>
+
+<p>We can&rsquo;t forget about the <strong>hardware keys</strong>, if we don&rsquo;t listen for updates on those keys
+we&rsquo;ll be out of sync. Don&rsquo;t worry, we got this covered too.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">protected</span> <span class="kt">void</span> <span class="nf">onAttachedToWindow</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>  <span class="kd">super</span><span class="o">.</span><span class="na">onAttachedToWindow</span><span class="o">();</span>
+</span><span class='line'>  <span class="n">getContext</span><span class="o">().</span><span class="na">registerReceiver</span><span class="o">(</span><span class="n">volumeReceiver</span><span class="o">,</span>
+</span><span class='line'>    <span class="k">new</span> <span class="nf">IntentFilter</span><span class="o">(</span><span class="s">&quot;android.media.VOLUME_CHANGED_ACTION&quot;</span><span class="o">));</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">protected</span> <span class="kt">void</span> <span class="nf">onDetachedFromWindow</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">unregisterVolumeReceiver</span><span class="o">();</span>
+</span><span class='line'>  <span class="n">getContext</span><span class="o">().</span><span class="na">unregisterReceiver</span><span class="o">(</span><span class="n">volumeReceiver</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="kd">private</span> <span class="n">BroadcastReceiver</span> <span class="n">volumeReceiver</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">BroadcastReceiver</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>  <span class="nd">@Override</span>
+</span><span class='line'>  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onReceive</span><span class="o">(</span><span class="n">Context</span> <span class="n">context</span><span class="o">,</span> <span class="n">Intent</span> <span class="n">intent</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">this</span><span class="o">.</span><span class="na">setProgress</span><span class="o">(</span><span class="n">audioManager</span><span class="o">.</span><span class="na">getStreamVolume</span><span class="o">(</span><span class="n">AudioManager</span><span class="o">.</span><span class="na">STREAM_MUSIC</span><span class="o">));</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We can use a <a href="http://developer.android.com/reference/android/content/BroadcastReceiver.html">BroadcastReceiver</a>
+which alerts us when the volume has changed via hardware keys. We are going to make us of the view lifecycle
+in order to register and unregister and update the <code>SeekBar</code> progress.</p>
+
+<h1>Brightness SeekBar</h1>
+
+<p>Another interesting feature of any <code>MediaPlayer</code> is to adjust the screen brightness.
+Currently, Android doesn&rsquo;t make it to easy for the user to do so and that&rsquo;s where <a href="https://github.com/malmstein/fenster">Fenster</a> comes in.</p>
+
+<p>The screen brightness is a <a href="http://developer.android.com/reference/android/provider/Settings.System.html#SCREEN_BRIGHTNESS">System Setting</a>
+that goes from 0 to 255. In order to change it, we just need to update the system setting with its new value.</p>
+
+<p>Since we want to make it easy and modular, there is now a new class which will handle the
+brightness update, the <a href="https://github.com/malmstein/fenster/blob/master/library/src/main/java/com/malmstein/fenster/gestures/FensterGestureControllerView.java">BrightnessHelper</a>.
+It just exposes a static method which needs a <code>Context</code> and the integer value with the new brightness.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">setBrightness</span><span class="o">(</span><span class="n">Context</span> <span class="n">context</span><span class="o">,</span> <span class="kt">int</span> <span class="n">brightness</span><span class="o">){</span>
+</span><span class='line'>  <span class="n">ContentResolver</span> <span class="n">cResolver</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="na">getContentResolver</span><span class="o">();</span>
+</span><span class='line'>  <span class="n">Settings</span><span class="o">.</span><span class="na">System</span><span class="o">.</span><span class="na">putInt</span><span class="o">(</span><span class="n">cResolver</span><span class="o">,</span> <span class="n">Settings</span><span class="o">.</span><span class="na">System</span><span class="o">.</span><span class="na">SCREEN_BRIGHTNESS</span><span class="o">,</span> <span class="n">brightness</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Our approach is to use a <code>SeekBar</code>, similar as the <code>VolumeSeekBar</code> one. For that purpose, and in order make things more interactive
+to the user, we&rsquo;ll use a <code>SeekBarChangeListener</code> to update the brightness meanwhile the <code>SeekBar</code> progress changes.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="kd">final</span> <span class="n">OnSeekBarChangeListener</span> <span class="n">brightnessSeekListener</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">OnSeekBarChangeListener</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>  <span class="nd">@Override</span>
+</span><span class='line'>  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onProgressChanged</span><span class="o">(</span><span class="n">SeekBar</span> <span class="n">seekBar</span><span class="o">,</span> <span class="kt">int</span> <span class="n">brightness</span><span class="o">,</span> <span class="kt">boolean</span> <span class="n">fromUser</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">setBrightness</span><span class="o">(</span><span class="n">brightness</span><span class="o">);</span>
+</span><span class='line'>    <span class="n">setProgress</span><span class="o">(</span><span class="n">brightness</span><span class="o">);</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nd">@Override</span>
+</span><span class='line'>  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onStartTrackingTouch</span><span class="o">(</span><span class="n">SeekBar</span> <span class="n">seekBar</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">brightnessListener</span><span class="o">.</span><span class="na">onBrigthnessStartedDragging</span><span class="o">();</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nd">@Override</span>
+</span><span class='line'>  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onStopTrackingTouch</span><span class="o">(</span><span class="n">SeekBar</span> <span class="n">seekBar</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">brightnessListener</span><span class="o">.</span><span class="na">onBrightnessFinishedDragging</span><span class="o">();</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h1>How the Controller updates it all</h1>
+
+<p>As a recap from the past blog post and this very same one, we are now able to detect gestures like
+horizontal or vertical scrolls and horizontal or vertical flings. On the other hand, we also have
+now two <code>Views</code> that can update the volume and the brightness so&hellip; let&rsquo;s put all that
+together.</p>
+
+<p>What we are going to do is to <strong>update the video progress</strong> when scroll or fling movements occur
+and only <strong>one finger</strong> is being used to make the gesture. When <strong>two or more fingers</strong> are being used we
+will <strong>adjust the screen brightness or the volume</strong>.</p>
+
+<p><img src="https://raw.githubusercontent.com/malmstein/Fenster/master/art/multitouch.gif"></p>
+
+<p>How do we do that?</p>
+
+<p><a href="http://developer.android.com/reference/android/view/MotionEvent.html">MotionEvent</a> already tells us
+how many pointers are being used, that&rsquo;s basically telling us how many fingers are triggering the
+event.</p>
+
+<p>When a gesture with horizontal progress is detected we&rsquo;ll react on the video progress. One finger
+for small updates and two fingers for skipping 30 seconds backwards or forwards. The delta parameter
+tells us is the direction of the movement is right or left.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">public</span> <span class="kt">void</span> <span class="nf">onHorizontalScroll</span><span class="o">(</span><span class="n">MotionEvent</span> <span class="n">event</span><span class="o">,</span> <span class="kt">float</span> <span class="n">delta</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">if</span> <span class="o">(</span><span class="n">event</span><span class="o">.</span><span class="na">getPointerCount</span><span class="o">()</span> <span class="o">==</span> <span class="n">ONE_FINGER</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">updateVideoProgressBar</span><span class="o">(</span><span class="n">delta</span><span class="o">);</span>
+</span><span class='line'>  <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">delta</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">skipVideoForward</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">skipVideoBackwards</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>When the movement is vertical, we&rsquo;ll update the volume and the brightness. One finger for the
+volume and two or more for the brightness.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">public</span> <span class="kt">void</span> <span class="nf">onVerticalScroll</span><span class="o">(</span><span class="n">MotionEvent</span> <span class="n">event</span><span class="o">,</span> <span class="kt">float</span> <span class="n">delta</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">if</span> <span class="o">(</span><span class="n">event</span><span class="o">.</span><span class="na">getPointerCount</span><span class="o">()</span> <span class="o">==</span> <span class="n">ONE_FINGER</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">updateVolumeProgressBar</span><span class="o">(</span><span class="n">delta</span><span class="o">);</span>
+</span><span class='line'>  <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">updateBrightnessProgressBar</span><span class="o">(</span><span class="n">delta</span><span class="o">);</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Skipping the video</h2>
+
+<p>The video skipping is pretty straight forward since the timeframe we are going to skip the video
+forward or backwards is fixed. We just need to update the <code>SeekBar</code> progress:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="kt">void</span> <span class="nf">skipVideoForward</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">skipUnit</span> <span class="o">=</span> <span class="n">mProgress</span><span class="o">.</span><span class="na">getProgress</span><span class="o">()</span> <span class="o">+</span> <span class="n">SKIP_VIDEO_PROGRESS</span><span class="o">;</span>
+</span><span class='line'>    <span class="n">mSeekListener</span><span class="o">.</span><span class="na">onProgressChanged</span><span class="o">(</span><span class="n">mProgress</span><span class="o">,</span> <span class="n">skipUnit</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h1>Next steps</h1>
+
+<p>There is still much to do with <code>Fenster</code>. I&rsquo;ll be adding some ideas to the GitHub repo, please feel
+free to <a href="https://github.com/malmstein/fenster/issues">add your own requests</a> or even implement
+them yourselves!</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Using Gestures to Control the Media Player]]></title>
