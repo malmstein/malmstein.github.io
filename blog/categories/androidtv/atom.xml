@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Androidtv | David Gonzalez]]></title>
+  <link href="http://malmstein.github.io/blog/categories/androidtv/atom.xml" rel="self"/>
+  <link href="http://malmstein.github.io/"/>
+  <updated>2014-10-21T10:52:52+01:00</updated>
+  <id>http://malmstein.github.io/</id>
+  <author>
+    <name><![CDATA[David Gonzalez]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Building Applications for Android TV]]></title>
+    <link href="http://malmstein.github.io/blog/2014/10/21/building-applications-for-android-tv/"/>
+    <updated>2014-10-21T00:19:05+01:00</updated>
+    <id>http://malmstein.github.io/blog/2014/10/21/building-applications-for-android-tv</id>
+    <content type="html"><![CDATA[<p>By now you all have heard about <a href="http://developer.android.com/about/versions/lollipop.html">the new Android release</a> and almost all of you have
+played with new API and probably experimented with <a href="http://www.google.com/design/spec/material-design/introduction.html">Material Design</a>.</p>
+
+<p>I have to say though, that one of the things that I&rsquo;m most excited about is <a href="http://developer.android.com/design/tv/index.html">Android TV</a>. I was very much into it <a href="http://www.google.com/tv/">before it was cool</a> but never got the chance to actually get hands on. Happily this has changed now and I&rsquo;ll be writing a series of posts about developing for Android TV, how to start, how to make your existing app compatible and how to make the most of it.</p>
+
+<p>If you are interested, please read on!</p>
+
+<p><img class="<a" src="href="https://raw.githubusercontent.com/malmstein/AndroidTVExplorer/master/art/intro.gif">https://raw.githubusercontent.com/malmstein/AndroidTVExplorer/master/art/intro.gif</a>&#8221;></p>
+
+<!-- more -->
+
+
+<p>Building applications for Android TV is not just developing and designing for an extremely big tablet. Yes, it is
+a much bigger display but that&rsquo;s not the point. <strong>The interaction with the device is completely different compared to a phone</strong>, you are not going
+to scroll through a 55 inches TV, are you? Same goes for the use cases, so far no one has been spotted reading the news in the underground on a <a href="http://www.engadget.com/2014/06/25/android-tv-is-coming-to-sony-sharp-and-philips-tvs-next-year/">Sony Bravia</a>.</p>
+
+<h1>Support Libraries</h1>
+
+<p>To make things a bit easier for us, Google has created a <a href="http://developer.android.com/tools/support-library/features.html#v17-leanback">Leanback Support Library</a> which contains APIs to support building user interfaces on TV devices. It provides a number of important widgets for TV apps which we&rsquo;ll make use in this project.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='groovy'><span class='line'><span class="n">dependencies</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">compile</span> <span class="o">&amp;</span><span class="n">lsquo</span><span class="o">;</span><span class="n">com</span><span class="o">.</span><span class="na">android</span><span class="o">.</span><span class="na">support</span><span class="o">:</span><span class="n">recyclerview</span><span class="o">-</span><span class="nl">v7:</span><span class="mf">21.0</span><span class="o">.+&amp;</span><span class="n">rsquo</span><span class="o">;</span>
+</span><span class='line'>  <span class="n">compile</span> <span class="o">&amp;</span><span class="n">lsquo</span><span class="o">;</span><span class="n">com</span><span class="o">.</span><span class="na">android</span><span class="o">.</span><span class="na">support</span><span class="o">:</span><span class="n">leanback</span><span class="o">-</span><span class="nl">v17:</span><span class="mf">21.0</span><span class="o">.+&amp;</span><span class="n">rsquo</span><span class="o">;</span>
+</span><span class='line'>  <span class="n">compile</span> <span class="o">&amp;</span><span class="n">lsquo</span><span class="o">;</span><span class="n">com</span><span class="o">.</span><span class="na">android</span><span class="o">.</span><span class="na">support</span><span class="o">:</span><span class="n">appcompat</span><span class="o">-</span><span class="nl">v7:</span><span class="mf">21.0</span><span class="o">.+&amp;</span><span class="n">rsquo</span><span class="o">;</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<h1>Demo project: The Android TV Explorer</h1>
+
+<p>It&rsquo;s always easier to show and share while building stuff so I&rsquo;m creating this example project called <a href="https://github.com/malmstein/AndroidTVExplorer">Android TV Explorer</a> where all the knowledge from this series will be pushed.</p>
+
+<p>By the end of this series the project will be a <strong>great starting point</strong> for anyone interested in developing a media library application for Android TV.</p>
+
+<p><img class="<a" src="href="https://raw.githubusercontent.com/malmstein/AndroidTVExplorer/master/art/home.png">https://raw.githubusercontent.com/malmstein/AndroidTVExplorer/master/art/home.png</a>&#8221;></p>
+
+<h1>Creating a library layout using the Browse Fragment</h1>
+
+<p>One of the widgets that the <code>Leanback Support Library</code> provides is the <a href="http://developer.android.com/reference/android/support/v17/leanback/app/BrowseFragment.html">BrowseFragment</a>.
+A fragment for creating leanback browse screens, it is composed of a <code>RowsFragment</code> and a <code>HeadersFragment</code>.</p>
+
+<p>As you can see in the library screen above, the header corresponds to the list on the left and the rows to the grid on the right. <code>BrowseFragment</code> allows us to customise several actions and some UI elements, like changing the default visibility of the <code>HeadersFragment</code> or changing the behaviour of the transition when entering one of the rows.</p>
+
+<p>For the purpose of this example we are not going to change anything today, indeed we are going to
+take a closer look at <strong>how the items are displayed</strong>.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="kt">void</span> <span class="nf">setupUIElements</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">setTitle</span><span class="o">(</span><span class="n">getString</span><span class="o">(</span><span class="n">R</span><span class="o">.</span><span class="na">string</span><span class="o">.</span><span class="na">browse_title</span><span class="o">));</span>
+</span><span class='line'>  <span class="n">setHeadersState</span><span class="o">(</span><span class="n">HEADERS_ENABLED</span><span class="o">);</span>
+</span><span class='line'>  <span class="n">setHeadersTransitionOnBackEnabled</span><span class="o">(</span><span class="kc">true</span><span class="o">);</span>
+</span><span class='line'>  <span class="n">setBrandColor</span><span class="o">(</span><span class="n">getResources</span><span class="o">().</span><span class="na">getColor</span><span class="o">(</span><span class="n">R</span><span class="o">.</span><span class="na">color</span><span class="o">.</span><span class="na">fastlane_background</span><span class="o">));</span>
+</span><span class='line'>  <span class="n">setSearchAffordanceColor</span><span class="o">(</span><span class="n">getResources</span><span class="o">().</span><span class="na">getColor</span><span class="o">(</span><span class="n">R</span><span class="o">.</span><span class="na">color</span><span class="o">.</span><span class="na">search_opaque</span><span class="o">));</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>There several helper methods that the <code>BrowseFragment</code> exposes that make it very simple to customise its look and feel. For example, <code>setBrandColor()</code> and <code>setSearchAffordanceColor()</code> allow us to change the background of the <code>HeadersFragment</code> and the color of the rounded search icon.</p>
+
+<h1>Presenter</h1>
+
+<p><code>BrowseFragment</code> renders the elements of its <a href="http://developer.android.com/reference/android/support/v17/leanback/widget/ArrayObjectAdapter.html">ArrayObjectAdapter</a> as a sequence of rows and a vertical list. This <code>ObjectAdapter</code> makes use of a <a href="http://developer.android.com/reference/android/support/v17/leanback/widget/Presenter.html">Presenter</a>, concept which those familiar with the <a href="http://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93presenter">Model-view-presenter</a> will quickly understand.</p>
+
+<p>A <code>Presenter</code> is used to generate <code>Views</code> and bind <code>Objects</code> to them on demand. It is closely related to concept of an <code>RecyclerView.Adapter</code>, but is non position-based.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;</span>
+</span><span class='line'><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">public</span> <span class="kt">void</span> <span class="nf">onLoadFinished</span><span class="o">(</span><span class="n">Loader</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">HashMap</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">String</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">Movie</span><span class="o">&gt;&gt;&gt;</span> <span class="n">arg0</span><span class="o">,</span> <span class="n">HashMap</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">String</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">Movie</span><span class="o">&gt;&gt;</span> <span class="n">data</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">mRowsAdapter</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">ArrayObjectAdapter</span><span class="o">(</span><span class="k">new</span> <span class="nf">ListRowPresenter</span><span class="o">());</span>
+</span><span class='line'>  <span class="n">CardPresenter</span> <span class="n">cardPresenter</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">CardPresenter</span><span class="o">();</span>
+</span><span class='line'>  <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="nf">for</span> <span class="o">(</span><span class="n">Map</span><span class="o">.</span><span class="na">Entry</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">String</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">Movie</span><span class="o">&gt;&gt;</span> <span class="n">entry</span> <span class="o">:</span> <span class="n">data</span><span class="o">.</span><span class="na">entrySet</span><span class="o">())</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">ArrayObjectAdapter</span> <span class="n">listRowAdapter</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">ArrayObjectAdapter</span><span class="o">(</span><span class="n">cardPresenter</span><span class="o">);</span>
+</span><span class='line'>      <span class="n">List</span><span class="o">&lt;</span><span class="n">Movie</span><span class="o">&gt;</span> <span class="n">list</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="na">getValue</span><span class="o">();&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span>  <span class="nf">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span> <span class="n">j</span> <span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span> <span class="n">list</span><span class="o">.</span><span class="na">size</span><span class="o">();</span> <span class="n">j</span><span class="o">++)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">listRowAdapter</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">list</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">j</span><span class="o">));</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>  <span class="n">HeaderItem</span> <span class="n">header</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">HeaderItem</span><span class="o">(</span><span class="n">i</span><span class="o">,</span> <span class="n">entry</span><span class="o">.</span><span class="na">getKey</span><span class="o">(),</span> <span class="kc">null</span><span class="o">);</span>
+</span><span class='line'>  <span class="n">i</span><span class="o">++;</span>
+</span><span class='line'>  <span class="n">mRowsAdapter</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="k">new</span> <span class="nf">ListRow</span><span class="o">(</span><span class="n">header</span><span class="o">,</span> <span class="n">listRowAdapter</span><span class="o">));</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="o">}&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="nf">setAdapter</span><span class="o">(</span><span class="n">mRowsAdapter</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>We are using a <code>CardPresenter</code> which will <strong>display all the movies from each category into cards</strong>. The elements of the <code>BrowseFragment</code> adapter must be subclasses of &lsquo;Row&rsquo;, that&rsquo;s the reason why the <code>mRowsAdapter</code> uses the <code>ListRowPresenter</code>. Again, this is just a wrapper around normal fragments and its goal is to make things easy to develop from scratch. Obviously, one can make use of them or not but for the purpose of this project we&rsquo;ll stick to the simplicity&hellip; for now!</p>
+
+<h1>Setting up event listeners</h1>
+
+<p>There are two exposed <code>Listeners</code> in the <code>BrowseFragment</code>. It&rsquo;s very interesting to see
+how the selection and click are two different events, the reason why is very simple and you&rsquo;ll get
+to understand it after reading the code.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;</span>
+</span><span class='line'><span class="kd">protected</span> <span class="n">OnItemViewSelectedListener</span> <span class="nf">getDefaultItemSelectedListener</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">return</span> <span class="k">new</span> <span class="nf">OnItemViewSelectedListener</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onItemSelected</span><span class="o">(</span><span class="n">Presenter</span><span class="o">.</span><span class="na">ViewHolder</span> <span class="n">viewHolder</span><span class="o">,</span> <span class="n">Object</span> <span class="n">item</span><span class="o">,</span> <span class="n">RowPresenter</span><span class="o">.</span><span class="na">ViewHolder</span>                  <span class="n">viewHolder2</span><span class="o">,</span> <span class="n">Row</span> <span class="n">row</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">mBackgroundURI</span> <span class="o">=</span> <span class="o">((</span><span class="n">Movie</span><span class="o">)</span> <span class="n">item</span><span class="o">).</span><span class="na">getBackgroundImageURI</span><span class="o">();</span>
+</span><span class='line'>      <span class="n">updateBackgroundPicture</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>  <span class="o">};</span>
+</span><span class='line'><span class="o">}&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="kd">protected</span> <span class="n">OnItemViewClickedListener</span> <span class="nf">getDefaultItemClickedListener</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">return</span> <span class="k">new</span> <span class="nf">OnItemViewClickedListener</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onItemClicked</span><span class="o">(</span><span class="n">Presenter</span><span class="o">.</span><span class="na">ViewHolder</span> <span class="n">viewHolder</span><span class="o">,</span> <span class="n">Object</span> <span class="n">item</span><span class="o">,</span> <span class="n">RowPresenter</span><span class="o">.</span><span class="na">ViewHolder</span> <span class="n">viewHolder2</span><span class="o">,</span> <span class="n">Row</span> <span class="n">row</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">Toast</span><span class="o">.</span><span class="na">makeText</span><span class="o">(</span><span class="n">getActivity</span><span class="o">(),</span> <span class="n">movie</span><span class="o">.</span><span class="na">getTitle</span><span class="o">(),</span> <span class="n">Toast</span><span class="o">.</span><span class="na">LENGTH_LONG</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>  <span class="o">};</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>When a video is selected we can use the <a href="https://developer.android.com/reference/android/support/v17/leanback/app/BackgroundManager.html">BackgroundManager</a> to update the background picture.</p>
+
+<h1>Background Manager</h1>
+
+<p>This is a complete different approach to what a mobile or tablet application would do but in my honest opinion makes a lot of sense. <strong>Android TV supports background image continuity between multiple <code>Activities</code></strong>.
+We are used to have transitions between all the <code>Activities</code> but this can be confusing in bigger form factors and when there is not a context switch, making use of the <code>Background Manager</code> we can deliver smoother transitions that won&rsquo;t disturb the user when looking at a big screen.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;</span>
+</span><span class='line'><span class="kd">protected</span> <span class="kt">void</span> <span class="nf">updateBackground</span><span class="o">(</span><span class="n">Drawable</span> <span class="n">drawable</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">BackgroundManager</span><span class="o">.</span><span class="na">getInstance</span><span class="o">(</span><span class="n">getActivity</span><span class="o">()).</span><span class="na">setDrawable</span><span class="o">(</span><span class="n">drawable</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<h2>Tip</h2>
+
+<p>Setting up the environment might be a bit tricky when talking about Android TV. Some of you may have an
+<a href="http://developer.android.com/tv/adt-1/index.html">ADT Developer Kit</a> but if you don&rsquo;t you&rsquo;ll need to create
+an emulator to start with (or wait for the brand new Nexus Player). It&rsquo;s pretty straight forward to <a href="http://developer.android.com/training/tv/start/start.html#run">create an emulator</a> but it&rsquo;s very helpful to activate
+<a href="http://developer.android.com/tools/devices/emulator.html#acceleration">hardware acceleration</a> in order to
+have better performance in the Android TV emulator.</p>
+
+<h1>Show me the code</h1>
+
+<p>You&rsquo;ll find the entire project on <a href="https://github.com/malmstein/AndroidTVExplorer">Github</a> and I&rsquo;ll be adding
+more features along with all the blog posts of this series. As always, all <del>trolling</del> feedback is more than welcome!</p>
+]]></content>
+  </entry>
+  
+</feed>
