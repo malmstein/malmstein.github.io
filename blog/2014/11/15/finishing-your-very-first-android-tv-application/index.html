@@ -1,0 +1,614 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Finishing Your Very First Android TV Application - David Gonzalez</title>
+  <meta name="author" content="David Gonzalez">
+
+  
+  <meta name="description" content="A few days ago we started to build an Android TV application and the feedback was very good. Today, it&rsquo;s time to take another step since we& &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://malmstein.github.io/blog/2014/11/15/finishing-your-very-first-android-tv-application">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="David Gonzalez" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-50897004-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">David Gonzalez</a></h1>
+  
+    <h2>Android Software Craftsman</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:malmstein.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/about">About me</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Finishing Your Very First Android TV Application</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-11-15T12:46:54+00:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>12:46 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>A few days ago <a href="" title="http://www.malmstein.com/blog/2014/10/21/building-applications-for-android-tv/">we started to build an Android TV application</a> and the feedback was very good. Today, it&rsquo;s time to take another step since we&rsquo;ll be publishing our
+<a href="" title="https://github.com/malmstein/AndroidTVExplorer">AndroidTV Explorer</a> with some updates. After these updates, you&rsquo;ll be able to see the details of a video and stream it&rsquo;s content.</p>
+
+<p><img src="https://raw.githubusercontent.com/malmstein/AndroidTVExplorer/master/art/detail.gif"></p>
+
+<!-- more -->
+
+
+<p>Obviously, the application is not very useful right now. There is a list of videos and different
+categories but there is no actual way to stream a video.</p>
+
+<p>For that reason, there are two new components that we need to build. Those are
+the video detail screen and the video player screen. Let&rsquo;s start with the detail one.</p>
+
+<h1>DetailsFragment</h1>
+
+<p>To keep things simple for now and fulfill the purpose of the series, we will use the <a href="http://developer.android.com/tools/support-library/features.html#v17-leanback">Leanback Support Library</a> again. This time, the <code>Widget</code> we are interested in is the <a href="https://developer.android.com/reference/android/support/v17/leanback/app/DetailsFragment.html">DetailsFragment</a>, which works in a similar way as the <code>BrowseFragment</code> used in the previous post.</p>
+
+<p><img src="https://raw.githubusercontent.com/malmstein/AndroidTVExplorer/master/art/detail.png"></p>
+
+<h2>The Presenter</h2>
+
+<p>Let me introduce you to the <a href="https://developer.android.com/reference/android/support/v17/leanback/widget/ClassPresenterSelector.html">ClassPresenterSelector</a>. Following the same
+pattern as the <code>Presenter</code> used at the <code>BrowseFragment</code>, the <code>DetailsFragment</code> is going to use a <a href="https://developer.android.com/reference/android/support/v17/leanback/widget/DetailsOverviewRowPresenter.html">DetailsOverviewRowPresenter</a> which will present the information.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">ClassPresenterSelector</span> <span class="n">ps</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">ClassPresenterSelector</span><span class="o">();</span>
+</span><span class='line'><span class="n">ps</span><span class="o">.</span><span class="na">addClassPresenter</span><span class="o">(</span><span class="n">DetailsOverviewRow</span><span class="o">.</span><span class="na">class</span><span class="o">,</span> <span class="n">dorPresenter</span><span class="o">);</span>
+</span><span class='line'><span class="n">ps</span><span class="o">.</span><span class="na">addClassPresenter</span><span class="o">(</span><span class="n">ListRow</span><span class="o">.</span><span class="na">class</span><span class="o">,</span> <span class="k">new</span> <span class="nf">ListRowPresenter</span><span class="o">());</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>As you can see, the <code>DetailsFragment</code> has two separate levels of information. There is a header or overview called <code>DetailsOverviewRowPresenter</code> which will show the detail of the video we interested in.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">DetailsOverviewRowPresenter</span> <span class="n">dorPresenter</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">DetailsOverviewRowPresenter</span><span class="o">(</span><span class="k">new</span> <span class="nf">VideoDetailsPresenter</span><span class="o">());</span>
+</span><span class='line'><span class="n">dorPresenter</span><span class="o">.</span><span class="na">setBackgroundColor</span><span class="o">(</span><span class="n">getResources</span><span class="o">().</span><span class="na">getColor</span><span class="o">(</span><span class="n">R</span><span class="o">.</span><span class="na">color</span><span class="o">.</span><span class="na">detail_background</span><span class="o">));</span>
+</span><span class='line'><span class="n">dorPresenter</span><span class="o">.</span><span class="na">setStyleLarge</span><span class="o">(</span><span class="kc">true</span><span class="o">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>That corresponds to the Video detail information. It&rsquo;s the <a href="https://developer.android.com/reference/android/support/v17/leanback/widget/DetailsOverviewRow.html">DetailsOverviewRow</a> and consists of an image, a description view, and optionally a series of Actions that can be taken for the item.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="kd">class</span> <span class="nc">VideoDetailsPresenter</span> <span class="kd">extends</span> <span class="n">AbstractDetailsDescriptionPresenter</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">protected</span> <span class="kt">void</span> <span class="nf">onBindDescription</span><span class="o">(</span><span class="n">ViewHolder</span> <span class="n">viewHolder</span><span class="o">,</span> <span class="n">Object</span> <span class="n">object</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">Video</span> <span class="n">details</span> <span class="o">=</span> <span class="o">(</span><span class="n">Video</span><span class="o">)</span> <span class="n">object</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">viewHolder</span><span class="o">.</span><span class="na">getTitle</span><span class="o">().</span><span class="na">setText</span><span class="o">(</span><span class="n">details</span><span class="o">.</span><span class="na">getTitle</span><span class="o">());</span>
+</span><span class='line'>  <span class="n">viewHolder</span><span class="o">.</span><span class="na">getSubtitle</span><span class="o">().</span><span class="na">setText</span><span class="o">(</span><span class="n">details</span><span class="o">.</span><span class="na">getStudio</span><span class="o">());</span>
+</span><span class='line'>  <span class="n">viewHolder</span><span class="o">.</span><span class="na">getBody</span><span class="o">().</span><span class="na">setText</span><span class="o">(</span><span class="n">details</span><span class="o">.</span><span class="na">getDescription</span><span class="o">());</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The other important piece of information is the Related Videos section. In order to build that, the <code>DetailsFragment</code> asks the <code>ClassPresenterSelector</code> to show a <code>ListRowPresenter</code>. What are those related videos you may ask? We&rsquo;ll use the category of the video to get that information, basically showing all the videos from the same category.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">ArrayObjectAdapter</span> <span class="n">adapter</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">ArrayObjectAdapter</span><span class="o">(</span><span class="n">ps</span><span class="o">);</span>
+</span><span class='line'><span class="n">adapter</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">detailRow</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">String</span> <span class="n">subcategories</span><span class="o">[]</span> <span class="o">=</span> <span class="o">{</span><span class="n">getString</span><span class="o">(</span><span class="n">R</span><span class="o">.</span><span class="na">string</span><span class="o">.</span><span class="na">related_movies</span><span class="o">)};</span>
+</span><span class='line'><span class="n">HashMap</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">Video</span><span class="o">&gt;&gt;</span> <span class="n">videos</span> <span class="o">=</span> <span class="n">VideoProvider</span><span class="o">.</span><span class="na">getMovieList</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">ArrayObjectAdapter</span> <span class="n">listRowAdapter</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">ArrayObjectAdapter</span><span class="o">(</span><span class="k">new</span> <span class="nf">CardPresenter</span><span class="o">());</span>
+</span><span class='line'><span class="k">for</span> <span class="o">(</span><span class="n">Map</span><span class="o">.</span><span class="na">Entry</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">Video</span><span class="o">&gt;&gt;</span> <span class="n">entry</span> <span class="o">:</span> <span class="n">videos</span><span class="o">.</span><span class="na">entrySet</span><span class="o">())</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">if</span> <span class="o">(</span><span class="n">selectedVideo</span><span class="o">.</span><span class="na">getCategory</span><span class="o">().</span><span class="na">indexOf</span><span class="o">(</span><span class="n">entry</span><span class="o">.</span><span class="na">getKey</span><span class="o">())</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">List</span><span class="o">&lt;</span><span class="n">Video</span><span class="o">&gt;</span> <span class="n">list</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="na">getValue</span><span class="o">();</span>
+</span><span class='line'>    <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">list</span><span class="o">.</span><span class="na">size</span><span class="o">();</span> <span class="n">j</span><span class="o">++)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">listRowAdapter</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">list</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">j</span><span class="o">));</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">HeaderItem</span> <span class="n">header</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">HeaderItem</span><span class="o">(</span><span class="mi">0</span><span class="o">,</span> <span class="n">subcategories</span><span class="o">[</span><span class="mi">0</span><span class="o">],</span> <span class="kc">null</span><span class="o">);</span>
+</span><span class='line'><span class="n">adapter</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="k">new</span> <span class="nf">ListRow</span><span class="o">(</span><span class="n">header</span><span class="o">,</span> <span class="n">listRowAdapter</span><span class="o">));</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">setAdapter</span><span class="o">(</span><span class="n">adapter</span><span class="o">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Good, we are now able to see the video detail and some related videos but&hellip; how do we interact with the video?</p>
+
+<h2>Easily adding actions</h2>
+
+<p>For that purpose <code>DetailsFragment</code> exposes a very simple solution, the so called <code>Action</code>.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">DetailsOverviewRow</span> <span class="n">detailRow</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">DetailsOverviewRow</span><span class="o">(</span><span class="n">selectedMovie</span><span class="o">);</span>
+</span><span class='line'><span class="n">row</span><span class="o">.</span><span class="na">addAction</span><span class="o">(</span><span class="k">new</span> <span class="nf">Action</span><span class="o">(</span><span class="n">ACTION_WATCH_VIDEO</span><span class="o">,</span> <span class="n">getResources</span><span class="o">().</span><span class="na">getString</span><span class="o">(</span>
+</span><span class='line'><span class="n">R</span><span class="o">.</span><span class="na">string</span><span class="o">.</span><span class="na">watch_video_1</span><span class="o">),</span> <span class="n">getResources</span><span class="o">().</span><span class="na">getString</span><span class="o">(</span><span class="n">R</span><span class="o">.</span><span class="na">string</span><span class="o">.</span><span class="na">watch_video_2</span><span class="o">)));</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The element which will handle the <code>ActionClick</code> is the <code>DetailsOverviewRowPresenter</code>. Each of of the added actions is identified by it&rsquo;s <code>id</code>.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">dorPresenter</span><span class="o">.</span><span class="na">setOnActionClickedListener</span><span class="o">(</span><span class="k">new</span> <span class="nf">OnActionClickedListener</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>  <span class="nd">@Override</span>
+</span><span class='line'>  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onActionClicked</span><span class="o">(</span><span class="n">Action</span> <span class="n">action</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">action</span><span class="o">.</span><span class="na">getId</span><span class="o">()</span> <span class="o">==</span> <span class="n">ACTION_WATCH_VIDEO</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">Intent</span> <span class="n">intent</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">Intent</span><span class="o">(</span><span class="n">getActivity</span><span class="o">(),</span> <span class="n">PlayerActivity</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+</span><span class='line'>      <span class="n">intent</span><span class="o">.</span><span class="na">putExtra</span><span class="o">(</span><span class="n">getResources</span><span class="o">().</span><span class="na">getString</span><span class="o">(</span><span class="n">R</span><span class="o">.</span><span class="na">string</span><span class="o">.</span><span class="na">video</span><span class="o">),</span> <span class="n">selectedVideo</span><span class="o">);</span>
+</span><span class='line'>      <span class="n">startActivity</span><span class="o">(</span><span class="n">intent</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">Toast</span><span class="o">.</span><span class="na">makeText</span><span class="o">(</span><span class="n">getActivity</span><span class="o">(),</span> <span class="n">action</span><span class="o">.</span><span class="na">toString</span><span class="o">(),</span> <span class="n">Toast</span><span class="o">.</span><span class="na">LENGTH_SHORT</span><span class="o">).</span><span class="na">show</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">});</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Right, so there is some interaction here, let&rsquo;s stream the video once and for all. The TV is the perfect form factor for displaying videos, so that should be pretty straight forward!</p>
+
+<h1>PlayerFragment</h1>
+
+<p>Displaying a video is probably one of the most important use cases of Android TV. It&rsquo;s pretty clear at this point that the interaction between remote controller and device must be simple and
+easy to use. For that reason the <code>TVPlayerFragment</code> was born.</p>
+
+<p>The idea is pretty simple, tell the <code>Fragment</code> what to play and forget about the rest. One can press the keys in the remote and the expected behaviour will occur. The most interesting part is probably the direction arrows. When using them, I&rsquo;d expect to seek over the video if pressing left or right. It&rsquo;s all about accessing the <a href="http://developer.android.com/reference/android/view/KeyEvent.html#KEYCODE_MEDIA_PLAY_PAUSE">KeyEvents</a></p>
+
+<p>Since this is a <code>Fragment</code>, the <code>KeyEvents</code> come filtered by the <code>Activity</code></p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">onKeyDown</span><span class="o">(</span><span class="kt">int</span> <span class="n">keyCode</span><span class="o">,</span> <span class="n">KeyEvent</span> <span class="n">event</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">if</span> <span class="o">(</span><span class="n">keyCode</span> <span class="o">==</span> <span class="n">KeyEvent</span><span class="o">.</span><span class="na">KEYCODE_DPAD_LEFT</span> <span class="o">||</span> <span class="n">keyCode</span> <span class="o">==</span> <span class="n">KeyEvent</span><span class="o">.</span><span class="na">KEYCODE_DPAD_RIGHT</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="o">((</span><span class="n">TVPlayerFragment</span><span class="o">)</span> <span class="n">getFragmentManager</span><span class="o">().</span><span class="na">findFragmentById</span><span class="o">(</span><span class="n">R</span><span class="o">.</span><span class="na">id</span><span class="o">.</span><span class="na">player_fragment</span><span class="o">)).</span><span class="na">onKeyDown</span><span class="o">(</span><span class="n">keyCode</span><span class="o">);</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>  <span class="k">return</span> <span class="kd">super</span><span class="o">.</span><span class="na">onKeyDown</span><span class="o">(</span><span class="n">keyCode</span><span class="o">,</span> <span class="n">event</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">...</span>
+</span><span class='line'>
+</span><span class='line'><span class="kd">public</span> <span class="kt">void</span> <span class="nf">onKeyDown</span><span class="o">(</span><span class="kt">int</span> <span class="n">keyCode</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  <span class="kt">int</span> <span class="n">currentPos</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kt">int</span> <span class="n">delta</span> <span class="o">=</span> <span class="o">(</span><span class="n">videoDuration</span> <span class="o">/</span> <span class="n">SCRUB_SEGMENT_DIVISOR</span><span class="o">);</span>
+</span><span class='line'>  <span class="k">if</span> <span class="o">(</span><span class="n">delta</span> <span class="o">&lt;</span> <span class="n">MIN_SCRUB_TIME</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">delta</span> <span class="o">=</span> <span class="n">MIN_SCRUB_TIME</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">if</span> <span class="o">(!</span><span class="n">areControllersVisible</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">updateControllersVisibility</span><span class="o">(</span><span class="kc">true</span><span class="o">);</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">switch</span> <span class="o">(</span><span class="n">keyCode</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="k">case</span> <span class="n">KeyEvent</span><span class="o">.</span><span class="na">KEYCODE_DPAD_LEFT</span><span class="o">:</span>
+</span><span class='line'>      <span class="n">currentPos</span> <span class="o">=</span> <span class="n">videoView</span><span class="o">.</span><span class="na">getCurrentPosition</span><span class="o">();</span>
+</span><span class='line'>      <span class="n">currentPos</span> <span class="o">-=</span> <span class="n">delta</span><span class="o">;</span>
+</span><span class='line'>      <span class="k">if</span> <span class="o">(</span><span class="n">currentPos</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">play</span><span class="o">(</span><span class="n">currentPos</span><span class="o">);</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>    <span class="k">case</span> <span class="n">KeyEvent</span><span class="o">.</span><span class="na">KEYCODE_DPAD_RIGHT</span><span class="o">:</span>
+</span><span class='line'>      <span class="n">currentPos</span> <span class="o">=</span> <span class="n">videoView</span><span class="o">.</span><span class="na">getCurrentPosition</span><span class="o">();</span>
+</span><span class='line'>      <span class="n">currentPos</span> <span class="o">+=</span> <span class="n">delta</span><span class="o">;</span>
+</span><span class='line'>      <span class="k">if</span> <span class="o">(</span><span class="n">currentPos</span> <span class="o">&lt;</span> <span class="n">videoDuration</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">play</span><span class="o">(</span><span class="n">currentPos</span><span class="o">);</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Even though we are displaying video in the TV we can&rsquo;t forget that this is still Android and we still have to deal with our beloved <code>MediaPlayer</code>. Some of you may have read about <a href="https://github.com/malmstein/fenster">Fenster</a>, a library I&rsquo;ve been working on that simplifies the way we stream video content. A few weeks ago we explained how the <code>MediaPlayer</code> lifecycle works and <a href="http://www.malmstein.com/blog/2014/08/09/how-to-use-a-textureview-to-display-a-video-with-custom-media-player-controls/">how to stream a video</a> in a very simple way.</p>
+
+<p>Well, we still need to deal with those callbacks but we can do it a bit differently.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="kt">void</span> <span class="nf">setMediaPlayerCallbacks</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">videoView</span><span class="o">.</span><span class="na">setOnErrorListener</span><span class="o">(</span><span class="k">new</span> <span class="n">MediaPlayer</span><span class="o">.</span><span class="na">OnErrorListener</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">onError</span><span class="o">(</span><span class="n">MediaPlayer</span> <span class="n">mp</span><span class="o">,</span> <span class="kt">int</span> <span class="n">what</span><span class="o">,</span> <span class="kt">int</span> <span class="n">extra</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">videoView</span><span class="o">.</span><span class="na">stopPlayback</span><span class="o">();</span>
+</span><span class='line'>      <span class="n">mPlaybackState</span> <span class="o">=</span> <span class="n">PlaybackState</span><span class="o">.</span><span class="na">IDLE</span><span class="o">;</span>
+</span><span class='line'>      <span class="n">controllersTimer</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">Timer</span><span class="o">();</span>
+</span><span class='line'>      <span class="n">controllersTimer</span><span class="o">.</span><span class="na">schedule</span><span class="o">(</span><span class="k">new</span> <span class="nf">BackToDetailTask</span><span class="o">(),</span> <span class="n">CLOSE_VIDEO_TIME</span><span class="o">);</span>
+</span><span class='line'>      <span class="k">return</span> <span class="kc">false</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>  <span class="o">});</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">videoView</span><span class="o">.</span><span class="na">setOnPreparedListener</span><span class="o">(</span><span class="k">new</span> <span class="n">MediaPlayer</span><span class="o">.</span><span class="na">OnPreparedListener</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onPrepared</span><span class="o">(</span><span class="n">MediaPlayer</span> <span class="n">mp</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">videoDuration</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="na">getDuration</span><span class="o">();</span>
+</span><span class='line'>      <span class="n">endText</span><span class="o">.</span><span class="na">setText</span><span class="o">(</span><span class="n">formatTimeSignature</span><span class="o">(</span><span class="n">videoDuration</span><span class="o">));</span>
+</span><span class='line'>      <span class="n">videoSeekbar</span><span class="o">.</span><span class="na">setMax</span><span class="o">(</span><span class="n">videoDuration</span><span class="o">);</span>
+</span><span class='line'>      <span class="n">restartSeekBarTimer</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>  <span class="o">});</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">videoView</span><span class="o">.</span><span class="na">setOnCompletionListener</span><span class="o">(</span><span class="k">new</span> <span class="n">MediaPlayer</span><span class="o">.</span><span class="na">OnCompletionListener</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onCompletion</span><span class="o">(</span><span class="n">MediaPlayer</span> <span class="n">mp</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">stopSeekBarTimer</span><span class="o">();</span>
+</span><span class='line'>      <span class="n">mPlaybackState</span> <span class="o">=</span> <span class="n">PlaybackState</span><span class="o">.</span><span class="na">IDLE</span><span class="o">;</span>
+</span><span class='line'>      <span class="n">updatePlayButton</span><span class="o">(</span><span class="n">PlaybackState</span><span class="o">.</span><span class="na">IDLE</span><span class="o">);</span>
+</span><span class='line'>      <span class="n">controllersTimer</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">Timer</span><span class="o">();</span>
+</span><span class='line'>      <span class="n">controllersTimer</span><span class="o">.</span><span class="na">schedule</span><span class="o">(</span><span class="k">new</span> <span class="nf">BackToDetailTask</span><span class="o">(),</span> <span class="n">HIDE_CONTROLLER_TIME</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>  <span class="o">});</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We are basically saying whenever there&rsquo;s an error we&rsquo;ll just navigate back to the video detail screen. The other thing we are saying is that the <code>SeekBar</code> position will be updated every second and not in the main thread.</p>
+
+<p>At this point, we can stream video content and enjoy it in our Android TV!</p>
+
+<h1>Show me the code</h1>
+
+<p>You&rsquo;ll find the entire project on <a href="https://github.com/malmstein/AndroidTVExplorer">Github</a> and I&rsquo;ll be adding
+more features along with all the blog posts of this series. As always, all <del>trolling</del> feedback is more than welcome!</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Gonzalez</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2014-11-15T12:46:54+00:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>12:46 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/androidtv/'>androidtv</a>, <a class='category' href='/blog/categories/lollipop/'>lollipop</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://malmstein.github.io/blog/2014/11/15/finishing-your-very-first-android-tv-application/" data-via="dggonzalez" data-counturl="http://malmstein.github.io/blog/2014/11/15/finishing-your-very-first-android-tv-application/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/10/21/building-applications-for-android-tv/" title="Previous Post: Building applications for Android TV">&laquo; Building applications for Android TV</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/11/15/finishing-your-very-first-android-tv-application/">Finishing Your Very First Android TV Application</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/21/building-applications-for-android-tv/">Building Applications for Android TV</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/11/all-your-gestures-belong-to-fenster/">All Your Gestures Belong to Fenster</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/09/21/control-the-media-player-using-gestures/">Using Gestures to Control the Media Player</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/09/how-to-use-a-textureview-to-display-a-video-with-custom-media-player-controls/">How to Use a TextureView to Display a Video With Custom Media Player Controls</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating&#8230;</li>
+  </ul>
+  
+  <a href="https://github.com/malmstein">@malmstein</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'malmstein',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/+DavidGonzálezNovoda?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - David Gonzalez -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'malmstein';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://malmstein.github.io/blog/2014/11/15/finishing-your-very-first-android-tv-application/';
+        var disqus_url = 'http://malmstein.github.io/blog/2014/11/15/finishing-your-very-first-android-tv-application/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
