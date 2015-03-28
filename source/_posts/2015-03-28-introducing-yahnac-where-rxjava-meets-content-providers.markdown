@@ -12,7 +12,7 @@ For those who don't know, [Hacker News](https://news.ycombinator.com/) is a soci
 
 Not so long ago Y Combinator [announced](http://blog.ycombinator.com/hacker-news-api) a long awaited [API for Hacker News](https://github.com/HackerNews/API). Although it was pretty basic and simple, the most exciting piece of news to me was that the API was built using [Firebase](https://www.firebase.com/).
 
-In terms of features, **Yahnac allows you to read all Hacker News content from Hacker News from Top Stories to Jobs**. On top of that, **you'll be able to add Bookmarks** and keep them as long as you like.
+In terms of features, **Yahnac allows you to read all Hacker News content from Top Stories to Jobs**. On top of that, **you'll be able to add Bookmarks** and keep them as long as you like.
 
 If you are interested in knowing how **Yahnac** has been built, please do Read on!
 
