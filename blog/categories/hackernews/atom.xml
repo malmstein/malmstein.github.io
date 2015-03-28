@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Hackernews | David Gonzalez]]></title>
+  <link href="http://malmstein.github.io/blog/categories/hackernews/atom.xml" rel="self"/>
+  <link href="http://malmstein.github.io/"/>
+  <updated>2015-03-28T18:13:09+00:00</updated>
+  <id>http://malmstein.github.io/</id>
+  <author>
+    <name><![CDATA[David Gonzalez]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Introducing Yahnac: Where RxJava Meets Firebase and Content Providers]]></title>
+    <link href="http://malmstein.github.io/blog/2015/03/28/introducing-yahnac-where-rxjava-meets-content-providers/"/>
+    <updated>2015-03-28T09:45:57+00:00</updated>
+    <id>http://malmstein.github.io/blog/2015/03/28/introducing-yahnac-where-rxjava-meets-content-providers</id>
+    <content type="html"><![CDATA[<p>What&rsquo;s <strong>Yahnac</strong> you might ask? Yet another <a href="https://news.ycombinator.com/">Hacker News</a> client, because there are never enough Hacker News clients out there!</p>
+
+<p>For those who don&rsquo;t know, <a href="https://news.ycombinator.com/">Hacker News</a> is a social news website focusing on computer science and entrepreneurship and it is run by the startup incubator <a href="https://www.ycombinator.com/">Y Combinator</a>. In general, content that can be submitted is defined as &ldquo;anything that gratifies one&rsquo;s intellectual curiosity&rdquo;.</p>
+
+<p>Not so long ago Y Combinator <a href="http://blog.ycombinator.com/hacker-news-api">announced</a> a long awaited <a href="https://github.com/HackerNews/API">API for Hacker News</a>. Although it was pretty basic and simple, the most exciting piece of news to me was that the API was built using <a href="https://www.firebase.com/">Firebase</a>.</p>
+
+<p>In terms of features, <strong>Yahnac allows you to read all Hacker News content from Hacker News from Top Stories to Jobs</strong>. On top of that, <strong>you&rsquo;ll be able to add Bookmarks</strong> and keep them as long as you like.</p>
+
+<p>If you are interested in knowing how <strong>Yahnac</strong> has been built, please do Read on!</p>
+
+<p><img class="<a" src="href="https://raw.githubusercontent.com/malmstein/yahnac/master/art/top_stories.png">https://raw.githubusercontent.com/malmstein/yahnac/master/art/top_stories.png</a>&#8221;></p>
+
+<!-- more -->
+
+
+<h1>A confession to make</h1>
+
+<p>Doctor, I have to confess. I like <a href="http://developer.android.com/guide/components/loaders.html">Loaders</a>, <a href="http://developer.android.com/guide/topics/providers/content-providers.html">Content Providers</a> and their boilerplate. There is no point arguing if they are the best solution for everything, they are not.</p>
+
+<p>A few months ago <a href="https://github.com/ReactiveX/RxJava">RxJava</a> started to become popular amongst <a href="http://novoda.com/">Novoda</a>. Applications like <a href="https://play.google.com/store/apps/details?id=com.novoda.dch">Digital Concert Hall</a> and <a href="https://play.google.com/store/apps/details?id=uk.co.thesun.mobile">The Sun</a> have been developed with reactive approach and the results are amazing.</p>
+
+<p>Also, I&rsquo;m lucky enough to have people like <a href="http://uk.droidcon.com/2014/sessions/rx-fy-all-the-things/">Benjamin Augustin</a>, <a href="https://twitter.com/devisnik">Volker Leck</a> and <a href="https://twitter.com/mr_archano">Antonio Bertucci</a> around the office, who strongly believe in the benefits of reactive programming and it&rsquo;s applications to Android.</p>
+
+<p>Following these principles I started a journey to wrap all these Framework specific solutions together with <code>Rx</code> and <code>Firebase</code>, a very different approach to conventional Rest APIs.</p>
+
+<h1>Architecture</h1>
+
+<p>The principle is very simple, it doesn&rsquo;t matter how the data is retrieved from the network since all I really care is to store it into the database in a meaningful way and display it as quick as possible. These very distinct responsibilities can be handled by <code>Rx</code> on the networking layer, <a href="https://www.sqlite.org/">SQlite</a> in the database layer and <code>Loaders</code> in the UI layer.</p>
+
+<p>Leveraging all the network and data manipulation onto <code>Rx</code> together with <code>Firebase</code> makes a lot of sense. <code>Firebase</code> data is <a href="https://www.firebase.com/docs/android/guide/retrieving-data.html">retrieved by attaching an asynchronous listener to a Firebase reference</a>. The listener will be triggered once for the initial state of the data and again anytime the data changes.</p>
+
+<p>Based on the current implementation of the API, one needs to retrieve to 501 <code>Firebase</code> instances in order to display a list of <a href="https://github.com/HackerNews/API#new-and-top-stories">500 top stories</a>. One call will retrieve the id of all the items in the Top Stories page, then one needs to do another call for each one of those id and retrieve the data from the news item.</p>
+
+<p><code>Rx</code> seems like a perfect candidate to solve all this, it&rsquo;s reactive approach allows to deal with all the recursive calls and threading seamlessly. It also allows to manipulate that data and provide with the output that the database layer needs. The output of this will be <a href="http://developer.android.com/reference/android/content/ContentValues.html">ContentValues</a>, which is what a <code>ContentProvider</code> needs.</p>
+
+<p>On the UI layer, once we are using <code>ContentProvider</code> it&rsquo;s very easy to decide how to display the content. <a href="http://developer.android.com/reference/android/content/CursorLoader.html">CursorLoader</a> allows you to retrieve a <a href="http://developer.android.com/reference/android/database/Cursor.html">Cursor</a> with the desired data, it all made sense!</p>
+
+<p>There was only one step more to be take, and that was to solve the incompatibility of <a href="https://developer.android.com/reference/android/support/v7/widget/RecyclerView.html">RecyclerView</a> and <code>Cursor</code>, in following post I&rsquo;ll deep dive into the actual implementation details and issues, stay tuned if you are interested.</p>
+
+<h1>Supporting different form factors</h1>
+
+<p>I had several doubts regarding the UI and how it would look like in different form factors. At the beginning I thought about using a <a href="http://developer.android.com/design/patterns/multi-pane-layouts.html">Multi Pane</a> but after using the app for a while something didn&rsquo;t feel right.</p>
+
+<p><img class="<a" src="href="https://raw.githubusercontent.com/malmstein/yahnac/master/art/tablet_old_ui.png">https://raw.githubusercontent.com/malmstein/yahnac/master/art/tablet_old_ui.png</a>&#8221;></p>
+
+<p>The navigation wasn&rsquo;t very clear on landscape so I decided to use a <code>Staggered Grid</code> like the one <a href="https://codeascraft.com/">Etsy</a> made so popular back in the days.</p>
+
+<p><img class="<a" src="href="https://raw.githubusercontent.com/malmstein/yahnac/master/art/tablet_top_stories.png">https://raw.githubusercontent.com/malmstein/yahnac/master/art/tablet_top_stories.png</a>&#8221;></p>
+
+<p>Same goes for smartphones, the UI will adapt from one column to two.</p>
+
+<p><img class="<a" src="href="https://raw.githubusercontent.com/malmstein/yahnac/master/art/smartphone_landscape.png">https://raw.githubusercontent.com/malmstein/yahnac/master/art/smartphone_landscape.png</a>&#8221;></p>
+
+<h1>We live in a Material world</h1>
+
+<p>No decent app nowadays should be shipped without <a href="http://www.google.com/design/spec/material-design/introduction.html">Material Design principles</a> and after <a href="https://speakerdeck.com/malmstein/what-material-design-means-to-android">talking</a> and <a href="https://speakerdeck.com/malmstein/material-animations">presenting</a> about it I couldn&rsquo;t be different.</p>
+
+<p>The majority of articles are shown in a WebView, that does not leave a lot of space for transitions and fancy animations. The application has no pictures therefore beautiful <a href="https://developer.android.com/reference/android/support/v7/graphics/Palette.html">Palette</a> can&rsquo;t be added, not the best case scenario is it?</p>
+
+<p>However, Material is not just animations and colors. Several aspects like <strong>typograhpy</strong>, <strong>spacing</strong> and <strong>ripples</strong> can easily be applied making a big difference.</p>
+
+<p><img class="<a" src="href="https://raw.githubusercontent.com/malmstein/yahnac/master/art/comments.png">https://raw.githubusercontent.com/malmstein/yahnac/master/art/comments.png</a>&#8221;></p>
+
+<p>Another of the features that all Material applications show these days is the <strong>quick return pattern</strong>. It&rsquo;s a great idea and allows the user to enjoy more content while scrolling.</p>
+
+<p><img class="<a" src="href="https://raw.githubusercontent.com/malmstein/yahnac/master/art/yahnac.gif">https://raw.githubusercontent.com/malmstein/yahnac/master/art/yahnac.gif</a>&#8221;></p>
+
+<h1>Right, how do I get it?</h1>
+
+<p><a href="https://play.google.com/store/apps/details?id=com.malmstein.yahnac"><img src="https://raw.githubusercontent.com/malmstein/yahnac/master/art/play.png" alt="Get it on Google Play" /></a></p>
+
+<h1>There&rsquo;s more to come</h1>
+
+<p>The application is not finished, there are several feature that I&rsquo;d like to add like being able to publish a news item or replying to comments. Do yo fancy contributing? Please do! The <a href="https://github.com/malmstein/yahnac">source code is available in GitHub</a> and all PRs are welcome.</p>
+]]></content>
+  </entry>
+  
+</feed>
