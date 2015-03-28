@@ -8,43 +8,18 @@ footer: true
 ---
 
 Hello, my name is David González and I'm an Android Software Craftsman. Do you think that word is too arrogant? It may be, one can say that this whole
-[Software Craftsmanship](http://en.wikipedia.org/wiki/Software_craftsmanship) is just another stupid trend. One can also say that the fact that there a
+[Software Craftsmanship](http://en.wikipedia.org/wiki/Software_craftsmanship) is just another stupid trend. One can also say that the fact that there is a
 [manifesto](http://manifesto.softwarecraftsmanship.org/) does not prove anything either.
 
 <img id="portrait" src="https://lh4.googleusercontent.com/-7QFKKU5sleY/UkRuqfvVqXI/AAAAAAAACVU/869QcTLIlAM/s1224-no/954627_10151696059623836_272056235_n.jpg" alt="portrait" />
 
-The truth is, I consider myself something else than a developer. Asking questions, raising the bar, caring about the details, learning from the best
-and speaking about it at all the conferences and events I can.
-
-4 years ago I was hit by Android, it was about time for my University dissertation and a teacher whom I'll always be thankful showed me this thing called
-Android which was supposed to be a big thing... a couple of days after I started to write an app which was going to alert the user when the proximity to
+5 years ago I was hit by Android, it was about time for my University dissertation and a teacher whom I'll always be thankful showed me this thing called
+Android which was supposed to be a big thing... a couple of days after I started to write an app which alerter the user when the proximity to
 a bar (still Spanish after all) was smaller than a specified distance.
 
-Once the dissertation was finished I quit my job and stated to work with an agency named Kirubs where I wrote my firsts applications
-ready for production. There I learned how to be a self driven professional, being the only Android guy in a team can be such a big challenge and doing so for over a year
-gave me the confidence I needed to take on a higher challenge.
+The truth is, I consider myself a curious creature. I like to ask questions and I've been lucky enough to [learn from the best](http://novoda.com/). The evolution at **Novoda** has been amazing, starting as a Junior developer I've been raising the bar, caring about the details and taking care of the products. Now I'm a Technical Product Owner, [Google Developer Expert for Android](https://developers.google.com/experts/people/david-gonz-lez) and I'm in love with public speaking.
 
-* ChipSpain: Electronic equipment online shop. Like Amazon, but just a bit smaller. [Google Play](https://play.google.com/store/apps/details?id=com.kirubs.chipspain)
-* Calp: Tourist guide application from the City of Calp [Google Play](https://play.google.com/store/apps/details?id=com.kirubs.calp)
-* VirtualFace: Social network. Like Facebook but with Augmented Reality... dunno why Mark didn't buy this [Google Play](https://play.google.com/store/apps/details?id=com.kirubs.apps.virtualface)
-* Sicur: International Security Safety & Fire Exhibition [Google Play](https://play.google.com/store/apps/details?id=com.kirubs.apps.sicur)
-* Solan de Cabras: Helps you find the closest interesting points recommended by the famout mineral water brand [Google Play](https://play.google.com/store/apps/details?id=com.kirubs.solandecabras)
-* The Creators Project: The ones from Vice, it was a partnership with an agency but the application was never published.
-* FashionTV: Again a partnership with an agency, an application made for FashionTV channel enthusiasts.
-* La Casa del Libro: A very challenging and high profile project. Bring the whole library of one of the biggest book sellers in Spain to the smartphone [Google Play]("https://play.google.com/store/apps/details?id=com.tagus")
-
-That was almost 18 months of intense development, not focusing on quality but on quantity so a decision needed to be made. A new possibility arose, this
-time focused on quality and on just one project. It was my opportunity to dedicate myself to one product, being part of the whole process from conceptualisation
-to market.
-
-The company was Blink Booking in Madrid. That place got me the opportunity to learn about new technologies, work in a team fully focused on quality and being able to play an important role
-in all the decisions made. Everything related to the Android application was running under my supervision, from whiteboard to deployment.
-
-It was an amazing experience and the exit was quite successful since Groupon acquired the company. [Google Play](https://play.google.com/store/apps/details?id=com.sbits.blink)
-
-Being able to see a product grow from nothing to 100.000 downloads in just 7 months was an amazing experience, it helped me understand how some decisions may affect the business goals
-and react upon mistakes. All that knowledge was the main reason that took me to the next step in my career, the place where I've stepped up the game and became what I am right now,
-[Novoda](http://www.novoda.com).
+{% img left https://cohoots.com/wp-content/uploads/2014/05/android_gde_2014.png 320 250 Place Kitten #2 %}
 
 This blog is where I write about my passions, experiences and mistakes... yes mistakes, because that's from what I've learnt the most.
 
@@ -56,9 +31,13 @@ This blog is where I write about my passions, experiences and mistakes... yes mi
 * GitHub: [malmstein](https://github.com/malmstein)
 * LinkedIn: [dggonzalez](https://uk.linkedin.com/in/dggonzalez)
 
-
 ## Speaker at conferences
 
+* Wearable Technology Show London 2015 - Panelist on the Future of Wearable Apps
+* MaterialFest Cadiz 2015 - Material Animations and other related stories [slides](https://speakerdeck.com/malmstein/material-animations)
+* DevFest Barcelona 2015 - What Material means to Android [slides](https://speakerdeck.com/malmstein/what-material-design-means-to-android)
+* Codemotion Madrid 2014 - What Material means to Android [slides](https://speakerdeck.com/malmstein/what-material-design-means-to-android)
+* Droidcon UK 2014 - Size does not matter, 2.83 inches is enough [slides](https://speakerdeck.com/malmstein/size-does-not-matter-2-dot-83-inches-is-enough) [video](https://skillsmatter.com/skillscasts/5606-size-does-not-matter-2-83-inches-is-enough)
 * Droidcon Madrid 2014 - Android and Google App Engine [slides](https://docs.google.com/presentation/d/1X8HROGmi2_am8DHPeAROnuRrvaDpUm3LxVJQUtB06tA/pub?start=false&loop=false&delayms=3000)
 * Droidcon Berlin 2014 - Streaming to the Droid [slides](https://speakerdeck.com/malmstein/streaming-the-droid)
 * GDG Android in Berlin 2014 - SQLite Provider [slides](https://speakerdeck.com/malmstein/streaming-the-droid)
