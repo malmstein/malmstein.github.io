@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Rxjava | David Gonzalez]]></title>
   <link href="http://malmstein.github.io/blog/categories/rxjava/atom.xml" rel="self"/>
   <link href="http://malmstein.github.io/"/>
-  <updated>2015-03-28T18:15:02+00:00</updated>
+  <updated>2015-04-05T15:37:10+01:00</updated>
   <id>http://malmstein.github.io/</id>
   <author>
     <name><![CDATA[David Gonzalez]]></name>
@@ -12,6 +12,440 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Building Yahnac's Rx Pipeline]]></title>
+    <link href="http://malmstein.github.io/blog/2015/04/05/yahnacs-rx-pipeline/"/>
+    <updated>2015-04-05T09:24:49+01:00</updated>
+    <id>http://malmstein.github.io/blog/2015/04/05/yahnacs-rx-pipeline</id>
+    <content type="html"><![CDATA[<p>Following the <a href="http://www.malmstein.com/blog/2015/03/28/introducing-yahnac-where-rxjava-meets-content-providers/">introduction post about Yahnac</a> I thought it&rsquo;d be a good idea to share the learnings from <a href="http://reactivex.io/">Rx Java</a> and how I&rsquo;ve used it on <a href="https://github.com/malmstein/yahnac">Yahnac</a>.</p>
+
+<p>If you are interested in <strong>how to build the Rx pipeline alongside Firebase integration</strong> and how to make it work with <a href="http://developer.android.com/guide/topics/providers/content-providers.html">Content Providers</a>, please Read on!</p>
+
+<p><img class="<a" src="href="http://www.jsg.utexas.edu/lacp/files/PGC_Pipeline_Data.jpg">http://www.jsg.utexas.edu/lacp/files/PGC_Pipeline_Data.jpg</a>&#8221;></p>
+
+<!-- more -->
+
+
+<h1>What is the Rx pipeline in Yahnac?</h1>
+
+<p>Basically, it&rsquo;s everything that happens between someone subscribes to an <code>Observable</code> in the networking layer until the data is stored in the <code>Content Provider</code>. For those familiar with <a href="https://github.com/ReactiveX/RxJava">RxJava</a> this will sound a bit of a simple explanation. There&rsquo;s people why smarter than me that have explained <a href="https://speakerdeck.com/mttkay/conquering-concurrency-bringing-the-reactive-extensions-to-the-android-platform">the principles of Rx Java on Android</a> and <a href="http://www.slideshare.net/rolandkuhn/reactive-streams">how to handle data-flows the reactive way</a>.</p>
+
+<h1>Retrieving data from Firebase</h1>
+
+<p>Before getting into detail of how the pipeline works in our case, we first need to understand how to retrieve the data. In order to do so, <code>Firebase</code> allows us to read two different event types <strong>Value</strong> and <strong>Child Added</strong>, <a href="https://www.firebase.com/docs/android/guide/retrieving-data.html#section-types">both events work differently</a>.</p>
+
+<h2>Value event</h2>
+
+<p>The event callback is passed a snapshot containing all data at that location, in this example we are retrieving a list of blog posts</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">Firebase</span> <span class="n">ref</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">Firebase</span><span class="o">(&amp;</span><span class="n">ldquo</span><span class="o">;&lt;</span><span class="n">a</span> <span class="n">href</span><span class="o">=</span><span class="s">&quot;https://docs-examples.firebaseio.com/web/saving-data/fireblog/posts&quot;</span><span class="o">&gt;</span><span class="nl">https:</span><span class="c1">//docs-examples.firebaseio.com/web/saving-data/fireblog/posts&lt;/a&gt;&amp;rdquo;);</span>
+</span><span class='line'><span class="n">ref</span><span class="o">.</span><span class="na">addValueEventListener</span><span class="o">(</span><span class="k">new</span> <span class="nf">ValueEventListener</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>  <span class="nd">@Override</span>
+</span><span class='line'>  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onDataChange</span><span class="o">(</span><span class="n">DataSnapshot</span> <span class="n">snapshot</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">snapshot</span><span class="o">.</span><span class="na">getValue</span><span class="o">());</span>
+</span><span class='line'>  <span class="o">}&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="nd">@Override</span>
+</span><span class='line'>  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onCancelled</span><span class="o">(</span><span class="n">FirebaseError</span> <span class="n">firebaseError</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(&amp;</span><span class="n">ldquo</span><span class="o">;</span><span class="nl">Error:</span> <span class="o">&amp;</span><span class="n">rdquo</span><span class="o">;</span> <span class="o">+</span> <span class="n">firebaseError</span><span class="o">.</span><span class="na">getMessage</span><span class="o">());</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">});</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<h2>Child Added event</h2>
+
+<p>Unlike the value event which returns the entire contents of the location, the <code>onChildAdded</code> event is triggered once for each existing child and then again every time a new child is added to the specified path.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">Firebase</span> <span class="n">ref</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">Firebase</span><span class="o">(&amp;</span><span class="n">ldquo</span><span class="o">;&lt;</span><span class="n">a</span> <span class="n">href</span><span class="o">=</span><span class="s">&quot;https://docs-examples.firebaseio.com/web/saving-data/fireblog/posts&quot;</span><span class="o">&gt;</span><span class="nl">https:</span><span class="c1">//docs-examples.firebaseio.com/web/saving-data/fireblog/posts&lt;/a&gt;&amp;rdquo;);</span>
+</span><span class='line'><span class="n">ref</span><span class="o">.</span><span class="na">addChildEventListener</span><span class="o">(</span><span class="k">new</span> <span class="nf">ChildEventListener</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>  <span class="nd">@Override</span>
+</span><span class='line'>  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onChildAdded</span><span class="o">(</span><span class="n">DataSnapshot</span> <span class="n">snapshot</span><span class="o">,</span> <span class="n">String</span> <span class="n">previousChildKey</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">Map</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">String</span><span class="o">,</span> <span class="n">Object</span><span class="o">&gt;</span> <span class="n">newPost</span> <span class="o">=</span> <span class="o">(</span><span class="n">Map</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">String</span><span class="o">,</span> <span class="n">Object</span><span class="o">&gt;)</span> <span class="n">snapshot</span><span class="o">.</span><span class="na">getValue</span><span class="o">();</span>
+</span><span class='line'>    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(&amp;</span><span class="n">ldquo</span><span class="o">;</span><span class="nl">Author:</span> <span class="o">&amp;</span><span class="n">rdquo</span><span class="o">;</span> <span class="o">+</span> <span class="n">newPost</span><span class="o">.</span><span class="na">get</span><span class="o">(&amp;</span><span class="n">ldquo</span><span class="o">;</span><span class="n">author</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="o">;));</span>
+</span><span class='line'>    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(&amp;</span><span class="n">ldquo</span><span class="o">;</span><span class="nl">Title:</span> <span class="o">&amp;</span><span class="n">rdquo</span><span class="o">;</span> <span class="o">+</span> <span class="n">newPost</span><span class="o">.</span><span class="na">get</span><span class="o">(&amp;</span><span class="n">ldquo</span><span class="o">;</span><span class="n">title</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="o">;));</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">});</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>The object retrieved <code>DataSnapshot</code> allows us to read the data using the <code>getValue()</code> method and will return  <code>Boolean</code>, <code>Long</code>, <code>Double</code>, <code>Map&lt;String, Object&gt;</code> or <code>List&lt;Object&gt;</code>. If no data exists at the location, the snapshot will return null.</p>
+
+<h1>Retrieving the Top Stories</h1>
+
+<p>The <a href="https://github.com/HackerNews/API">Hacker News API</a> exposes a reference for each one of the different categories available, for the purpose of this example we are going to focus on the <strong>Top Stories</strong> one.</p>
+
+<p>The available <code>Firebase</code> reference will send a <a href="https://hacker-news.firebaseio.com/v0/topstories">list which contains the id fields of the stories</a>. However, this does not give us all the information we need. For that matter, there is an endpoint which will retrieve <a href="https://hacker-news.firebaseio.com/v0/item/8744658">data from a specific story</a>.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">Firebase</span> <span class="n">topStories</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">Firebase</span><span class="o">(&amp;</span><span class="n">ldquo</span><span class="o">;&lt;</span><span class="n">a</span> <span class="n">href</span><span class="o">=</span><span class="s">&quot;https://hacker-news.firebaseio.com/v0/topstories&quot;</span><span class="o">&gt;</span><span class="nl">https:</span><span class="c1">//hacker-news.firebaseio.com/v0/topstories&lt;/a&gt;&amp;rdquo;);</span>
+</span><span class='line'><span class="n">topStories</span><span class="o">.</span><span class="na">addValueEventListener</span><span class="o">(</span><span class="k">new</span> <span class="nf">ValueEventListener</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onDataChange</span><span class="o">(</span><span class="n">DataSnapshot</span> <span class="n">dataSnapshot</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="c1">//do something with this</span>
+</span><span class='line'>    <span class="o">}&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">public</span> <span class="kt">void</span> <span class="nf">onCancelled</span><span class="o">(</span><span class="n">FirebaseError</span> <span class="n">firebaseError</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">Log</span><span class="o">.</span><span class="na">d</span><span class="o">(</span><span class="n">firebaseError</span><span class="o">.</span><span class="na">getCode</span><span class="o">());</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;});</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>The <code>DataSnapshot</code> contains a <code>List</code> of integers, which correspond to each one of the items in the <strong>Top Stories</strong> page, ordered by rank. At this point we&rsquo;ll need to ask for the data related to each story.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">final</span> <span class="n">Firebase</span> <span class="n">story</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">Firebase</span><span class="o">(&amp;</span><span class="n">ldquo</span><span class="o">;&lt;</span><span class="n">a</span> <span class="n">href</span><span class="o">=</span><span class="s">&quot;https://hacker-news.firebaseio.com/v0/item/&quot;</span><span class="o">&gt;</span><span class="nl">https:</span><span class="c1">//hacker-news.firebaseio.com/v0/item/&lt;/a&gt;&amp;rdquo; + id);</span>
+</span><span class='line'>  <span class="n">story</span><span class="o">.</span><span class="na">addValueEventListener</span><span class="o">(</span><span class="k">new</span> <span class="nf">ValueEventListener</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>      <span class="nd">@Override</span>
+</span><span class='line'>      <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onDataChange</span><span class="o">(</span><span class="n">DataSnapshot</span> <span class="n">dataSnapshot</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="n">Map</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">String</span><span class="o">,</span> <span class="n">Object</span><span class="o">&gt;</span> <span class="n">newItem</span> <span class="o">=</span> <span class="o">(</span><span class="n">Map</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">String</span><span class="o">,</span> <span class="n">Object</span><span class="o">&gt;)</span> <span class="n">dataSnapshot</span><span class="o">.</span><span class="na">getValue</span><span class="o">();</span>
+</span><span class='line'>          <span class="c1">//do something with this</span>
+</span><span class='line'>      <span class="o">}&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span>  <span class="nd">@Override</span>
+</span><span class='line'>  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onCancelled</span><span class="o">(</span><span class="n">FirebaseError</span> <span class="n">firebaseError</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">Log</span><span class="o">.</span><span class="na">d</span><span class="o">(</span><span class="n">firebaseError</span><span class="o">.</span><span class="na">getCode</span><span class="o">());</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="o">});</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>Since every story item has several fields, <code>Firebase</code> will send a <code>Map</code> with the data. Note that here we are asking for the <strong>Value</strong> events and not the <strong>Child Event</strong>. There is a reason for that which directly depends on the <strong>Rx pipeline</strong> we were talking earlier.</p>
+
+<p>Let&rsquo;s take a step back and take a look at the bigger picture. The main goal of this networking layer is to retrieve the data and serve it to the database. Since we are using <code>Content Provider</code> the data type that we can store is <code>ContentValue</code>. Therefore, the ouptut of the <strong>Rx pipeline</strong> should be a list of <code>ContentValues</code> which we&rsquo;ll then insert into the database.</p>
+
+<h1>Building the pipeline</h1>
+
+<p>So, how do we generate those <code>ContentValues</code> if all we have is a list of story ids? Well, we&rsquo;ll need to use the concept of <a href="http://reactivex.io/documentation/operators.html">Operator</a>. <strong>Rx</strong> allows use to make operations between different <code>Observables</code> in order to get the desired output. If we follow the <strong>decision tree of Observable Operators</strong>, we get to the conclusion that we need to use <a href="http://reactivex.io/documentation/operators/flatmap.html">Flat Map</a></p>
+
+<p><img class="<a" src="href="http://reactivex.io/documentation/operators/images/flatMap.c.png">http://reactivex.io/documentation/operators/images/flatMap.c.png</a>&#8221;></p>
+
+<p><code>Flat Map</code> transform the items emitted by an <code>Observable</code> into <code>Observables</code>, then flatten the emissions from those into a single <code>Observable</code>. In our case that very last <code>Observable</code> will contain all the <code>ContentValues</code> that will be inserted into the <code>ContentProvider</code>. Let&rsquo;s see how do we do that.</p>
+
+<p>As we&rsquo;ve seen earlier, <strong>the first thing we can get from the API is a list of ids</strong> corresponding to the stories. After that, we&rsquo;ll need to get the data for every single one of those ids. Once we get the data from a story item, we&rsquo;ll need to create the <code>ContentValues</code> and finally inserting them into the <code>ContentProvider</code>.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="n">Observable</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">ContentValues</span><span class="o">&gt;&gt;</span> <span class="nf">getStories</span><span class="o">(</span><span class="kd">final</span> <span class="n">Story</span><span class="o">.</span><span class="na">TYPE</span> <span class="n">type</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">return</span> <span class="n">Observable</span><span class="o">.</span><span class="na">create</span><span class="o">(</span><span class="k">new</span> <span class="n">Observable</span><span class="o">.</span><span class="na">OnSubscribe</span><span class="o">&lt;</span><span class="n">DataSnapshot</span><span class="o">&gt;()</span> <span class="o">{&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">public</span> <span class="kt">void</span> <span class="nf">call</span><span class="o">(</span><span class="kd">final</span> <span class="n">Subscriber</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;?</span> <span class="kd">super</span> <span class="n">DataSnapshot</span><span class="o">&amp;</span><span class="n">gt</span><span class="o">;</span> <span class="n">subscriber</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">Firebase</span> <span class="n">topStories</span> <span class="o">=</span> <span class="n">getStoryFirebase</span><span class="o">(</span><span class="n">type</span><span class="o">);</span>
+</span><span class='line'>  <span class="n">topStories</span><span class="o">.</span><span class="na">addValueEventListener</span><span class="o">(</span><span class="k">new</span> <span class="nf">ValueEventListener</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onDataChange</span><span class="o">(</span><span class="n">DataSnapshot</span> <span class="n">dataSnapshot</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">subscriber</span><span class="o">.</span><span class="na">onNext</span><span class="o">(</span><span class="n">dataSnapshot</span><span class="o">);</span>
+</span><span class='line'>      <span class="n">subscriber</span><span class="o">.</span><span class="na">onCompleted</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onCancelled</span><span class="o">(</span><span class="n">FirebaseError</span> <span class="n">firebaseError</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">Log</span><span class="o">.</span><span class="na">d</span><span class="o">(</span><span class="n">firebaseError</span><span class="o">.</span><span class="na">getCode</span><span class="o">());</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'><span class="o">});</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>As you can see, the method <code>getStories()</code> is the public method exposed which builds the pipeline. Using the <code>Flat Map</code> operator, the <code>DataSnapshot</code> will be sent to the next <code>Observable</code> which will handle the next operation. You might ask, why don&rsquo;t you use the <strong>Child Added</strong> event that <code>Firebase</code> offers? Well, the reason is because using <strong>Child Added</strong> event the <code>Subscriber</code> would never complete. We would get a <code>Callback</code> for every single new item and we&rsquo;d be able to send to the next <code>Observable</code>, but the pipeline would be broken since the operations on that <code>Observable</code> would only start once <code>onCompleted()</code> is called in the previous <code>Observable</code>.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="o">.</span><span class="na">flatMap</span><span class="o">(</span><span class="k">new</span> <span class="n">Func1</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">DataSnapshot</span><span class="o">,</span> <span class="n">Observable</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">Pair</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">Integer</span><span class="o">,</span> <span class="n">Long</span><span class="o">&gt;&gt;&gt;()</span> <span class="o">{</span>
+</span><span class='line'>  <span class="nd">@Override</span>
+</span><span class='line'>  <span class="kd">public</span> <span class="n">Observable</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">Pair</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">Integer</span><span class="o">,</span> <span class="n">Long</span><span class="o">&gt;&gt;</span> <span class="nf">call</span><span class="o">(</span><span class="kd">final</span> <span class="n">DataSnapshot</span> <span class="n">dataSnapshot</span><span class="o">)</span> <span class="o">{&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="k">return</span> <span class="n">Observable</span><span class="o">.</span><span class="na">create</span><span class="o">(</span><span class="k">new</span> <span class="n">Observable</span><span class="o">.</span><span class="na">OnSubscribe</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">Pair</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">Integer</span><span class="o">,</span> <span class="n">Long</span><span class="o">&amp;</span><span class="n">gt</span><span class="o">;&amp;</span><span class="n">gt</span><span class="o">;()</span> <span class="o">{</span>
+</span><span class='line'>  <span class="nd">@Override</span>
+</span><span class='line'>  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">call</span><span class="o">(</span><span class="n">Subscriber</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;?</span> <span class="kd">super</span> <span class="n">Pair</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">Integer</span><span class="o">,</span> <span class="n">Long</span><span class="o">&amp;</span><span class="n">gt</span><span class="o">;&amp;</span><span class="n">gt</span><span class="o">;</span> <span class="n">subscriber</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span> <span class="n">i</span> <span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span> <span class="n">dataSnapshot</span><span class="o">.</span><span class="na">getChildrenCount</span><span class="o">();</span> <span class="n">i</span><span class="o">++)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">Long</span> <span class="n">id</span> <span class="o">=</span> <span class="o">(</span><span class="n">Long</span><span class="o">)</span> <span class="n">dataSnapshot</span><span class="o">.</span><span class="na">child</span><span class="o">(</span><span class="n">String</span><span class="o">.</span><span class="na">valueOf</span><span class="o">(</span><span class="n">i</span><span class="o">)).</span><span class="na">getValue</span><span class="o">();</span>
+</span><span class='line'>      <span class="n">Integer</span> <span class="n">rank</span> <span class="o">=</span> <span class="n">Integer</span><span class="o">.</span><span class="na">valueOf</span><span class="o">(</span><span class="n">dataSnapshot</span><span class="o">.</span><span class="na">child</span><span class="o">(</span><span class="n">String</span><span class="o">.</span><span class="na">valueOf</span><span class="o">(</span><span class="n">i</span><span class="o">)).</span><span class="na">getKey</span><span class="o">());</span>
+</span><span class='line'>      <span class="n">Pair</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">Integer</span><span class="o">,</span> <span class="n">Long</span><span class="o">&amp;</span><span class="n">gt</span><span class="o">;</span> <span class="n">storyRoot</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Pair</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;&amp;</span><span class="n">gt</span><span class="o">;(</span><span class="n">rank</span><span class="o">,</span> <span class="n">id</span><span class="o">);</span>
+</span><span class='line'>      <span class="n">subscriber</span><span class="o">.</span><span class="na">onNext</span><span class="o">(</span><span class="n">storyRoot</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="n">subscriber</span><span class="o">.</span><span class="na">onCompleted</span><span class="o">();</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="o">});</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>First <code>FlatMap</code> here, we are receiving a list of ids and sending each one of them to the next <code>Observable</code>. Lucky enough, <code>DataSnapshot</code> allows us to access the items using <code>dataSnapshot.child()</code> and <code>dataSnapshot.getChildrenCount()</code>. It&rsquo;s just not enough with sending the <strong>id</strong>, we also want to send the <strong>rank</strong> of the story item since we want to be sure that the order is correct. For that reason we use the handy <a href="http://developer.android.com/reference/android/util/Pair.html">Pair</a> tuple object.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="o">}).</span><span class="na">flatMap</span><span class="o">(</span><span class="k">new</span> <span class="n">Func1</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">Pair</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">Integer</span><span class="o">,</span> <span class="n">Long</span><span class="o">&gt;,</span> <span class="n">Observable</span><span class="o">&lt;</span><span class="n">ContentValues</span><span class="o">&gt;&gt;()</span> <span class="o">{</span>
+</span><span class='line'>  <span class="nd">@Override</span>
+</span><span class='line'>  <span class="kd">public</span> <span class="n">Observable</span><span class="o">&lt;</span><span class="n">ContentValues</span><span class="o">&gt;</span> <span class="nf">call</span><span class="o">(</span><span class="kd">final</span> <span class="n">Pair</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">Integer</span><span class="o">,</span> <span class="n">Long</span><span class="o">&gt;</span> <span class="n">storyRoot</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="k">return</span> <span class="n">Observable</span><span class="o">.</span><span class="na">create</span><span class="o">(</span><span class="k">new</span> <span class="n">Observable</span><span class="o">.</span><span class="na">OnSubscribe</span><span class="o">&lt;</span><span class="n">ContentValues</span><span class="o">&gt;()</span> <span class="o">{</span>
+</span><span class='line'>      <span class="nd">@Override</span>
+</span><span class='line'>      <span class="kd">public</span> <span class="kt">void</span> <span class="nf">call</span><span class="o">(</span><span class="kd">final</span> <span class="n">Subscriber</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;?</span> <span class="kd">super</span> <span class="n">ContentValues</span><span class="o">&gt;</span> <span class="n">subscriber</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="kd">final</span> <span class="n">Firebase</span> <span class="n">story</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">Firebase</span><span class="o">(&amp;</span><span class="n">ldquo</span><span class="o">;&lt;</span><span class="n">a</span> <span class="n">href</span><span class="o">=</span><span class="s">&quot;https://hacker-news.firebaseio.com/v0/item/&quot;</span><span class="o">&gt;</span><span class="nl">https:</span><span class="c1">//hacker-news.firebaseio.com/v0/item/&lt;/a&gt;&amp;rdquo; + storyRoot.second);</span>
+</span><span class='line'>        <span class="n">story</span><span class="o">.</span><span class="na">addValueEventListener</span><span class="o">(</span><span class="k">new</span> <span class="nf">ValueEventListener</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>          <span class="nd">@Override</span>
+</span><span class='line'>          <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onDataChange</span><span class="o">(</span><span class="n">DataSnapshot</span> <span class="n">dataSnapshot</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">Map</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">String</span><span class="o">,</span> <span class="n">Object</span><span class="o">&gt;</span> <span class="n">newItem</span> <span class="o">=</span> <span class="o">(</span><span class="n">Map</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">String</span><span class="o">,</span> <span class="n">Object</span><span class="o">&gt;)</span> <span class="n">dataSnapshot</span><span class="o">.</span><span class="na">getValue</span><span class="o">();</span>
+</span><span class='line'>            <span class="n">subscriber</span><span class="o">.</span><span class="na">onNext</span><span class="o">(</span><span class="n">mapStory</span><span class="o">(</span><span class="n">newItem</span><span class="o">,</span> <span class="n">type</span><span class="o">,</span> <span class="n">storyRoot</span><span class="o">.</span><span class="na">first</span><span class="o">));</span>
+</span><span class='line'>            <span class="n">subscriber</span><span class="o">.</span><span class="na">onCompleted</span><span class="o">();</span>
+</span><span class='line'>          <span class="o">}&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span>      <span class="nd">@Override</span>
+</span><span class='line'>      <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onCancelled</span><span class="o">(</span><span class="n">FirebaseError</span> <span class="n">firebaseError</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Log</span><span class="o">.</span><span class="na">d</span><span class="o">(</span><span class="n">firebaseError</span><span class="o">.</span><span class="na">getCode</span><span class="o">());</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>    <span class="o">});</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">});</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="o">}</span>
+</span><span class='line'><span class="o">}).</span><span class="na">toList</span><span class="o">();</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>What makes all the magic here is <code>toList()</code>. The operator <a href="http://reactivex.io/documentation/operators/to.html">to</a> will convert the <code>Observable</code> into another object, in this case a <code>List</code>.</p>
+
+<p><img class="<a" src="href="http://reactivex.io/documentation/operators/images/to.c.png">http://reactivex.io/documentation/operators/images/to.c.png</a>&#8221;></p>
+
+<p>Once we&rsquo;ve got to this point, the <code>Observable</code> will provide a <code>List&lt;ContentValues&gt;</code> which is exactly what we wanted. Now we just need to know who is going to take care of the data, insert it in the <code>ContentProvider</code> and notify to the <code>Subscriber</code> that all the job is done.</p>
+
+<h1>Data repository</h1>
+
+<p>With this purpose in mind, and with the aim of having a single entry point for the networking layer, the <code>DataRepository</code> was created, which will take care of the so called <strong>pipeline</strong>.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="n">Observable</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span> <span class="nf">getStories</span><span class="o">(</span><span class="kd">final</span> <span class="n">Story</span><span class="o">.</span><span class="na">TYPE</span> <span class="n">type</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">return</span> <span class="n">api</span><span class="o">.</span><span class="na">getStories</span><span class="o">(</span><span class="n">type</span><span class="o">)</span>
+</span><span class='line'>    <span class="o">.</span><span class="na">flatMap</span><span class="o">(</span><span class="k">new</span> <span class="n">Func1</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">ContentValues</span><span class="o">&gt;,</span> <span class="n">Observable</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;&gt;()</span> <span class="o">{</span>
+</span><span class='line'>      <span class="nd">@Override</span>
+</span><span class='line'>      <span class="kd">public</span> <span class="n">Observable</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span> <span class="nf">call</span><span class="o">(</span><span class="kd">final</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">ContentValues</span><span class="o">&gt;</span> <span class="n">stories</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">Observable</span><span class="o">.</span><span class="na">create</span><span class="o">(</span><span class="k">new</span> <span class="n">Observable</span><span class="o">.</span><span class="na">OnSubscribe</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;()</span> <span class="o">{</span>
+</span><span class='line'>          <span class="nd">@Override</span>
+</span><span class='line'>          <span class="kd">public</span> <span class="kt">void</span> <span class="nf">call</span><span class="o">(</span><span class="n">Subscriber</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;?</span> <span class="kd">super</span> <span class="n">Integer</span><span class="o">&gt;</span> <span class="n">subscriber</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">dataPersister</span><span class="o">.</span><span class="na">persistStories</span><span class="o">(</span><span class="n">stories</span><span class="o">);</span>
+</span><span class='line'>            <span class="n">subscriber</span><span class="o">.</span><span class="na">onNext</span><span class="o">(</span><span class="n">stories</span><span class="o">.</span><span class="na">size</span><span class="o">());</span>
+</span><span class='line'>            <span class="n">subscriber</span><span class="o">.</span><span class="na">onCompleted</span><span class="o">();</span>
+</span><span class='line'>          <span class="o">}</span>
+</span><span class='line'>        <span class="o">});</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>  <span class="o">});</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>For now we are just notifying the <code>Subscriber</code> with the amount of stories inserted, but actually, that could be removed with no impact. There is just one more thing, how is all this data inserted in the <code>ContentProvider</code>?</p>
+
+<h2>Inserting the data</h2>
+
+<p>One of the features of the <code>ContentProvider</code> is to insert data in bulks. Yes, you got it, an array of <code>ContentValues</code> is exactly what&rsquo;s needed.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="kt">int</span> <span class="nf">persistStories</span><span class="o">(</span><span class="n">List</span><span class="o">&lt;</span><span class="n">ContentValues</span><span class="o">&gt;</span> <span class="n">topStories</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">ContentValues</span><span class="o">[]</span> <span class="n">cvArray</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ContentValues</span><span class="o">[</span><span class="n">topStories</span><span class="o">.</span><span class="na">size</span><span class="o">()];</span>
+</span><span class='line'>  <span class="n">topStories</span><span class="o">.</span><span class="na">toArray</span><span class="o">(</span><span class="n">cvArray</span><span class="o">);&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="k">return</span> <span class="n">contentResolver</span><span class="o">.</span><span class="na">bulkInsert</span><span class="o">(</span><span class="n">URI</span><span class="o">,</span> <span class="n">cvArray</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>With this simple action, we&rsquo;ve told the <code>ContentResolver</code> to insert all the data from the <strong>Top Stories</strong> page.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">public</span> <span class="kt">int</span> <span class="nf">bulkInsert</span><span class="o">(</span><span class="n">Uri</span> <span class="n">uri</span><span class="o">,</span> <span class="n">ContentValues</span><span class="o">[]</span> <span class="n">values</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="kd">final</span> <span class="n">SQLiteDatabase</span> <span class="n">db</span> <span class="o">=</span> <span class="n">mOpenHelper</span><span class="o">.</span><span class="na">getWritableDatabase</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">&amp;</span><span class="n">hellip</span><span class="o">;</span>
+</span><span class='line'>    <span class="n">db</span><span class="o">.</span><span class="na">beginTransaction</span><span class="o">();</span>
+</span><span class='line'>    <span class="k">try</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">for</span> <span class="o">(</span><span class="n">ContentValues</span> <span class="n">value</span> <span class="o">:</span> <span class="n">values</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">Cursor</span> <span class="n">exists</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="na">query</span><span class="o">(&amp;</span><span class="n">hellip</span><span class="o">;);&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span>        <span class="nf">if</span> <span class="o">(</span><span class="n">exists</span><span class="o">.</span><span class="na">moveToLast</span><span class="o">())</span> <span class="o">{</span>
+</span><span class='line'>            <span class="kt">long</span> <span class="n">_id</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="na">update</span><span class="o">(...);</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>            <span class="kt">long</span> <span class="n">_id</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="na">insert</span><span class="o">(...);</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>        <span class="n">exists</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="n">db</span><span class="o">.</span><span class="na">setTransactionSuccessful</span><span class="o">();</span>
+</span><span class='line'><span class="o">}</span> <span class="k">finally</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">db</span><span class="o">.</span><span class="na">endTransaction</span><span class="o">();</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'><span class="n">getContext</span><span class="o">().</span><span class="na">getContentResolver</span><span class="o">().</span><span class="na">notifyChange</span><span class="o">(</span><span class="n">URI</span><span class="o">,</span> <span class="kc">null</span><span class="o">);</span>
+</span><span class='line'><span class="k">return</span> <span class="n">returnCount</span><span class="o">;</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>There is a reason why we are using <code>bulkInsert</code> and not <code>insert</code>. If we were to use <code>insert</code>, the <code>ContentResolver</code> will notify all it&rsquo;s <code>Oberservers</code> every time an item is inserted. <strong>Every single call to Top Stories could return over 500 stories, that results in 500 x 8 ContentValues</strong>. Meaning the <code>Loader</code> listening to this specific <code>URI</code> would be notified 4000 times, which would make the <code>Adapter</code> to be refreshed 4000 times too.</p>
+
+<p>By calling <code>bulkInsert</code> we are only notifying the <code>Loader</code> once, that&rsquo;s a huge improvement don&rsquo;t you think. <strong>If you are inserting more than one <code>ContentValues</code> into the <code>ContentResolver</code>, make sure you are always using <code>bulkInsert</code></strong>.</p>
+
+<p>It&rsquo;s always better to see the code, right? <a href="https://github.com/malmstein/yahnac">The source is available on Github</a>.</p>
+
+<p>In the next post we&rsquo;ll talk about the UI, and the lessons learned with <code>RecyclerView</code>, <code>Loaders</code> and <code>AppCompat</code>.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Introducing Yahnac: Where RxJava Meets Firebase and Content Providers]]></title>
