@@ -1,0 +1,461 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Coordinator-layout | David Gonzalez]]></title>
+  <link href="http://malmstein.github.io/blog/categories/coordinator-layout/atom.xml" rel="self"/>
+  <link href="http://malmstein.github.io/"/>
+  <updated>2015-09-20T10:46:50+01:00</updated>
+  <id>http://malmstein.github.io/</id>
+  <author>
+    <name><![CDATA[David Gonzalez]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Yahnac Meets the Design Support Library]]></title>
+    <link href="http://malmstein.github.io/blog/2015/09/20/yahnac-meets-the-material-design-library/"/>
+    <updated>2015-09-20T09:37:48+01:00</updated>
+    <id>http://malmstein.github.io/blog/2015/09/20/yahnac-meets-the-material-design-library</id>
+    <content type="html"><![CDATA[<p>It&rsquo;s been a while since Yahnac <a href="http://www.malmstein.com/blog/2015/04/05/yahnacs-rx-pipeline/">has received some love</a>. There were several
+features I wanted to add and also <a href="https://github.com/malmstein/yahnac/issues/25">some</a> very
+<a href="https://github.com/malmstein/yahnac/issues/27">good</a> ideas worth exploring.</p>
+
+<p>A fully featured Hacker News client needs to allow the user to <strong>sign in</strong>, <strong>vote</strong> stories and <strong>reply</strong> to comments. Finally, all those features are now available in <a href="https://play.google.com/store/apps/details?id=com.malmstein.yahnac">Yahnac</a>. If you are curious to read about the journey to complete those features and the use of the <a href="http://android-developers.blogspot.co.uk/2015/05/android-design-support-library.html">Design Support Library</a> to do so please read on.</p>
+
+<p><img class="<a" src="href="https://raw.githubusercontent.com/malmstein/yahnac/master/art/top_stories.png">https://raw.githubusercontent.com/malmstein/yahnac/master/art/top_stories.png</a>&#8221;></p>
+
+<!-- more -->
+
+
+<p>There are, literally, hundreds of posts about how to use the <strong>Design Support Library</strong>. This is not going to be one of those, my goal here is to explain what I&rsquo;ve used and why. As you know, there are a huge number of <a href="http://developer.android.com/reference/android/support/design/widget/package-summary.html">Widgets</a>, <a href="http://developer.android.com/reference/android/support/design/widget/CoordinatorLayout.Behavior.html">Behaviours</a> and other goodies available in this library. It also means that there are a lot of decisions that need to be made before starting implementing them.</p>
+
+<h1>The glue</h1>
+
+<p>It&rsquo;s very easy to get lost in the vast ocean of possibilities, and to me that&rsquo;s the most difficult step to integrate with the Design Support Library. So many options, that is very easy to start adding animations, transitions and effects that are just pretty but are just there for a <strong>mere aesthetic reason and not to bring value to the user</strong>.</p>
+
+<p>When deciding which was going to be the first component I wanted to update it was very simple, the old <code>NavigationDrawer</code> was a clear winner.</p>
+
+<h2>NavigationView</h2>
+
+<p>There was using was a lot of boilerplate used and several classes in order to display a simple <code>Drawer</code>, thanks to the new <a href="https://developer.android.com/reference/android/support/design/widget/NavigationView.html">NavigationView</a> it&rsquo;s all much easier and cleaner</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'><span class="ni">&amp;lt;</span>android.support.design.widget.NavigationView
+</span><span class='line'>  android:id=<span class="ni">&amp;ldquo;</span>@+id/nav_view<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>  android:layout_height=<span class="ni">&amp;ldquo;</span>match_parent<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>  android:layout_width=<span class="ni">&amp;ldquo;</span>wrap_content<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>  android:layout_gravity=<span class="ni">&amp;ldquo;</span>start<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>  android:fitsSystemWindows=<span class="ni">&amp;ldquo;</span>true<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>  app:headerLayout=<span class="ni">&amp;ldquo;</span>@layout/view_drawer_header<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>  app:menu=<span class="ni">&amp;ldquo;</span>@menu/drawer_view<span class="ni">&amp;rdquo;</span> /&gt;
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>Thanks to the <code>headerLayout</code> attribute one can define a specific view to be inflated as a header.
+Since we are going to show a different header if the user is signed in or not, we can make use of the custom view to decide which layout to inflate.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">protected</span> <span class="kt">void</span> <span class="nf">onFinishInflate</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>    <span class="kd">super</span><span class="o">.</span><span class="na">onFinishInflate</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">&amp;</span><span class="n">hellip</span><span class="o">;</span>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">loginSharedPreferences</span><span class="o">.</span><span class="na">isLoggedIn</span><span class="o">())</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">LayoutInflater</span><span class="o">.</span><span class="na">from</span><span class="o">(</span><span class="n">getContext</span><span class="o">()).</span><span class="na">inflate</span><span class="o">(</span>
+</span><span class='line'>        <span class="n">R</span><span class="o">.</span><span class="na">layout</span><span class="o">.</span><span class="na">view_drawer_header_logged_in</span><span class="o">,</span> <span class="k">this</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">LayoutInflater</span><span class="o">.</span><span class="na">from</span><span class="o">(</span><span class="n">getContext</span><span class="o">()).</span><span class="na">inflate</span><span class="o">(</span>
+</span><span class='line'>        <span class="n">R</span><span class="o">.</span><span class="na">layout</span><span class="o">.</span><span class="na">view_drawer_header_logged_out</span><span class="o">,</span> <span class="k">this</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p><img class="<a" src="href="https://raw.githubusercontent.com/malmstein/yahnac/master/art/drawer_signed_in.png">https://raw.githubusercontent.com/malmstein/yahnac/master/art/drawer_signed_in.png</a>&#8221;></p>
+
+<h2>TextInputLayout</h2>
+
+<p>In order to reply to comments and vote stories, one need to be signed into <a href="https://news.ycombinator.com/">Hacker News</a>. Even though there is an API, it&rsquo;s not possible to authenticate against HN. Therefore, the only way to do that is to go through the actual website.</p>
+
+<p><strong>Yahnac does not store any private or sensible information from the user</strong>, the only data stored is the cookie that allows to authenticate the requests. That being said, there is a known issue with this workaround. Every time the cookie is expired (if you sign out from the HN website) you&rsquo;ll need to sign in again. Don&rsquo;t worry, you&rsquo;ll be notified if that happens and you&rsquo;ll be able to sign in again.</p>
+
+<p><img class="<a" src="href="https://raw.githubusercontent.com/malmstein/yahnac/master/art/login_screen.png">https://raw.githubusercontent.com/malmstein/yahnac/master/art/login_screen.png</a>&#8221;></p>
+
+<h2>Toolbar and TabLayout</h2>
+
+<p>It was pretty simple to migrate from the old <a href="https://developer.android.com/reference/android/app/ActionBar.html">ActionBar</a> to the new <a href="https://developer.android.com/reference/android/widget/Toolbar.html">Toolbar</a>. One of those things that make us developers happy. In terms of the new features available, following the trend started a while back by several applications we&rsquo;ll be hiding the toolbar when scrolling the list.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'><span class="ni">&amp;lt;</span>android.support.design.widget.CoordinatorLayout
+</span><span class='line'>  android:id=<span class="ni">&amp;ldquo;</span>@+id/main_content<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>  android:layout_width=<span class="ni">&amp;ldquo;</span>match_parent<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>  android:layout_height=<span class="ni">&amp;ldquo;</span>match_parent<span class="ni">&amp;rdquo;</span>&gt;<span class="nt">&lt;/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nt">&lt;p&gt;</span>  <span class="ni">&amp;lt;</span>android.support.design.widget.AppBarLayout
+</span><span class='line'>    android:id=<span class="ni">&amp;ldquo;</span>@+id/appbar<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>    android:layout_width=<span class="ni">&amp;ldquo;</span>match_parent<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>    android:layout_height=<span class="ni">&amp;ldquo;</span>wrap_content<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>    android:theme=<span class="ni">&amp;ldquo;</span>@style/ThemeOverlay.AppCompat.Dark.ActionBar<span class="ni">&amp;rdquo;</span>&gt;<span class="nt">&lt;/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nt">&lt;pre&gt;&lt;code&gt;</span><span class="ni">&amp;lt;</span>android.support.v7.widget.Toolbar
+</span><span class='line'>  android:id=&quot;@+id/toolbar&quot;
+</span><span class='line'>  android:layout_width=&quot;match_parent&quot;
+</span><span class='line'>  android:layout_height=&quot;?attr/actionBarSize&quot;
+</span><span class='line'>  android:background=&quot;?attr/colorPrimary&quot;
+</span><span class='line'>  app:popupTheme=&quot;@style/ThemeOverlay.AppCompat.Light&quot;
+</span><span class='line'>  app:layout_scrollFlags=&quot;scroll|enterAlways&quot; /<span class="ni">&amp;gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="ni">&amp;lt;</span>android.support.design.widget.TabLayout
+</span><span class='line'>  android:id=&quot;@+id/tabs&quot;
+</span><span class='line'>  android:paddingLeft=&quot;@dimen/appbar_swipe_tabs_left_padding&quot;
+</span><span class='line'>  app:tabMode=&quot;scrollable&quot;
+</span><span class='line'>  android:layout_width=&quot;match_parent&quot;
+</span><span class='line'>  android:layout_height=&quot;wrap_content&quot; /<span class="ni">&amp;gt;</span>
+</span><span class='line'><span class="nt">&lt;/code&gt;&lt;/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nt">&lt;p&gt;</span>  <span class="ni">&amp;lt;</span>/android.support.design.widget.AppBarLayout&gt;<span class="nt">&lt;/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nt">&lt;p&gt;</span>  <span class="ni">&amp;lt;</span>android.support.v4.view.ViewPager
+</span><span class='line'>    android:id=<span class="ni">&amp;ldquo;</span>@+id/viewpager<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>    android:layout_width=<span class="ni">&amp;ldquo;</span>match_parent<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>    android:layout_height=<span class="ni">&amp;ldquo;</span>match_parent<span class="ni">&amp;rdquo;</span>
+</span><span class='line'>    app:layout_behavior=<span class="ni">&amp;ldquo;</span>@string/appbar_scrolling_view_behavior<span class="ni">&amp;rdquo;</span> /&gt;<span class="nt">&lt;/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nt">&lt;p&gt;</span><span class="ni">&amp;lt;</span>/android.support.design.widget.CoordinatorLayout&gt;
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>One can see the reference to <a href="https://developer.android.com/reference/android/support/design/widget/AppBarLayout.ScrollingViewBehavior.html">Scroll View Behaviour</a> which is by the <code>ViewPager</code> which can scroll vertically and support nested scrolling to automatically scroll any <code>AppBarLayout</code> siblings.</p>
+
+<p>The new attribute <code>scroll:flags</code> is used to determine how the <code>Toolbar</code> will behave. In our case, we want the <code>Toolbar</code> to hide when scrolling up but appear again as soon as we scroll down.</p>
+
+<h1>Coordinator Layout</h1>
+
+<p>A lot has been written about the <a href="https://developer.android.com/reference/android/support/design/widget/CoordinatorLayout.html">CoordinatorLayout</a>, its possibilities and ways of achieving them are out of the scope of this post. However, there is a screen in Yahnac where it made sense to make use of that so called super-powered <code>FrameLayout</code>.</p>
+
+<p><img class="<a" src="href="https://raw.githubusercontent.com/malmstein/yahnac/master/art/coordinator_comments.gif">https://raw.githubusercontent.com/malmstein/yahnac/master/art/coordinator_comments.gif</a>&#8221;></p>
+
+<p>The Comments screen deserved some love, I wasn&rsquo;t very happy with the actual layour of the comments and it surely could be improved. Also, <strong>adding the vote and reply action to each one of the comments needed a bit more thinking</strong>. In the end, the best solution I came up with was to add action icons to the old comment list items and change the background to improve the reading experience.</p>
+
+<p>After these changes, it&rsquo;s much easier to follow the conversation and much easier to read through a long list of comments.</p>
+
+<h1>Transitions and Animations</h1>
+
+<p>As said earlier, it&rsquo;s very easy to fall into the trap of adding too much animations and transitions. It&rsquo;s been hard to restrain myself but I think the outcome is what I wanted to achieve.</p>
+
+<p>In an application like this with no images, there not much space for transitions between master and detail screens. However, one can also <strong>use color as a foundation for these transitions</strong>. That being said, there are only two places where it makes sense to animate the transition between screens. One of them being the transition to the login screen.</p>
+
+<p><img class="<a" src="href="https://raw.githubusercontent.com/malmstein/yahnac/master/art/transition_login.gif">https://raw.githubusercontent.com/malmstein/yahnac/master/art/transition_login.gif</a>&#8221;></p>
+
+<p>Both are pretty straight forward Activity transitions, where the content from one screen is animated to the next screen by changing its bounds.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'><span class="nt">&lt;transitionSet</span> <span class="na">xmlns:android=</span><span class="s">&quot;http://schemas.android.com/apk/res/android&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;changeBounds</span> <span class="nt">/&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;changeTransform</span> <span class="nt">/&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;changeClipBounds</span> <span class="nt">/&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;changeImageTransform</span> <span class="nt">/&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;arcMotion</span> <span class="na">android:minimumHorizontalAngle=</span><span class="s">&quot;45&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'><span class="nt">&lt;/transitionSet&gt;</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>The animation itself is set in the <code>Activity</code> theme.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'><span class="nt">&lt;/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'><span class="nt">&lt;p&gt;</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>Last but not least, we need to set the <code>Views</code> that will form the transition.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">public</span> <span class="kt">void</span> <span class="nf">onLoginClicked</span><span class="o">()</span> <span class="o">{&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="kd">final</span> <span class="n">android</span><span class="o">.</span><span class="na">util</span><span class="o">.</span><span class="na">Pair</span><span class="o">[]</span> <span class="n">pairs</span> <span class="o">=</span>
+</span><span class='line'>  <span class="n">TransitionHelper</span><span class="o">.</span><span class="na">createSafeTransitionParticipants</span><span class="o">(</span>
+</span><span class='line'>    <span class="n">activity</span><span class="o">,</span>
+</span><span class='line'>    <span class="kc">false</span><span class="o">,</span>
+</span><span class='line'>    <span class="k">new</span> <span class="n">android</span><span class="o">.</span><span class="na">util</span><span class="o">.</span><span class="na">Pair</span><span class="o">&amp;</span><span class="n">lt</span><span class="o">;&gt;(</span><span class="n">drawer</span><span class="o">,</span> <span class="n">VIEW_TOOLBAR_TITLE</span><span class="o">));&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">ActivityOptions</span> <span class="n">sceneTransitionAnimation</span> <span class="o">=</span>
+</span><span class='line'><span class="n">ActivityOptions</span><span class="o">.</span><span class="na">makeSceneTransitionAnimation</span><span class="o">(</span><span class="n">activity</span><span class="o">,</span> <span class="n">pairs</span><span class="o">);&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="kd">final</span> <span class="n">Bundle</span> <span class="n">transitionBundle</span> <span class="o">=</span> <span class="n">sceneTransitionAnimation</span><span class="o">.</span><span class="na">toBundle</span><span class="o">();</span>
+</span><span class='line'><span class="n">Intent</span> <span class="n">commentIntent</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">Intent</span><span class="o">(</span><span class="n">activity</span><span class="o">,</span> <span class="n">LoginActivity</span><span class="o">.</span><span class="na">class</span><span class="o">);&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">ActivityCompat</span><span class="o">.</span><span class="na">startActivity</span><span class="o">(</span>
+</span><span class='line'>  <span class="n">activity</span><span class="o">,</span>
+</span><span class='line'>  <span class="n">commentIntent</span><span class="o">,</span>
+</span><span class='line'>  <span class="n">transitionBundle</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>The majority of logic is set in the origin <code>Activity</code>, now the only missing piece is to set the <code>TransitionName</code> in the target <code>LoginActivity</code></p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">protected</span> <span class="kt">void</span> <span class="nf">onCreate</span><span class="o">(</span><span class="n">Bundle</span> <span class="n">savedInstanceState</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="kd">super</span><span class="o">.</span><span class="na">onCreate</span><span class="o">(</span><span class="n">savedInstanceState</span><span class="o">);&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;...</span>
+</span><span class='line'><span class="n">ViewCompat</span><span class="o">.</span><span class="na">setTransitionName</span><span class="o">(</span><span class="n">appBar</span><span class="o">,</span> <span class="n">VIEW_TOOLBAR_TITLE</span><span class="o">);</span>
+</span><span class='line'><span class="o">...</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;}</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>In terms of animations, I&rsquo;ve been particularly interested in the <a href="https://developer.android.com/reference/android/view/ViewAnimationUtils.html#createCircularReveal(android.view.View,%20int,%20int,%20float,%20float">circular reveal</a>). When prompting the user for some input it&rsquo;s normal to use <code>Dialogs</code> but they are always limiting the amount of space available. In <a href="https://news.ycombinator.com/">Hacker News</a> is usual to find comments that take more than just 4 lines, if only there was a way of replying to a comment AND have enough space to review it&hellip;</p>
+
+<p><img class="<a" src="href="https://raw.githubusercontent.com/malmstein/yahnac/master/art/reveal_reply.gif">https://raw.githubusercontent.com/malmstein/yahnac/master/art/reveal_reply.gif</a>&#8221;></p>
+
+<p>As you also know, this animation is only available for Lollipop and above. Even though there are several libraries that create this animation before Lollipop, I&rsquo;m of the opinion that the OS requirements are there for a reason. <strong>Don&rsquo;t back-port them to previous versions since you&rsquo;ll be modifying the default platform behaviour</strong>. Same goes for <code>Ripples</code>&hellip;</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="kt">void</span> <span class="nf">showReplyView</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">centerX</span> <span class="o">=</span> <span class="o">(</span><span class="n">replyFab</span><span class="o">.</span><span class="na">getLeft</span><span class="o">()</span> <span class="o">+</span> <span class="n">replyFab</span><span class="o">.</span><span class="na">getRight</span><span class="o">())</span> <span class="o">/</span> <span class="mi">2</span><span class="o">;</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">centerY</span> <span class="o">=</span> <span class="o">(</span><span class="n">replyFab</span><span class="o">.</span><span class="na">getTop</span><span class="o">()</span> <span class="o">+</span> <span class="n">replyFab</span><span class="o">.</span><span class="na">getBottom</span><span class="o">())</span> <span class="o">/</span> <span class="mi">2</span><span class="o">;</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">finalRadius</span> <span class="o">=</span> <span class="n">Math</span><span class="o">.</span><span class="na">max</span><span class="o">(</span><span class="n">replyView</span><span class="o">.</span><span class="na">getWidth</span><span class="o">(),</span> <span class="n">replyView</span><span class="o">.</span><span class="na">getHeight</span><span class="o">());</span>
+</span><span class='line'>    <span class="n">mCircularReveal</span> <span class="o">=</span> <span class="n">ViewAnimationUtils</span><span class="o">.</span><span class="na">createCircularReveal</span><span class="o">(</span>
+</span><span class='line'>            <span class="n">replyView</span><span class="o">,</span> <span class="n">centerX</span><span class="o">,</span> <span class="n">centerY</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="n">finalRadius</span><span class="o">);&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">mCircularReveal</span><span class="o">.</span><span class="na">addListener</span><span class="o">(</span><span class="k">new</span> <span class="nf">AnimatorListenerAdapter</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onAnimationEnd</span><span class="o">(</span><span class="n">Animator</span> <span class="n">animation</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="kd">super</span><span class="o">.</span><span class="na">onAnimationEnd</span><span class="o">(</span><span class="n">animation</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">mCircularReveal</span><span class="o">.</span><span class="na">removeListener</span><span class="o">(</span><span class="k">this</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'><span class="o">});</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">mCircularReveal</span><span class="o">.</span><span class="na">start</span><span class="o">();</span>
+</span><span class='line'><span class="n">replyFab</span><span class="o">.</span><span class="na">hide</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">replyView</span><span class="o">.</span><span class="na">setVisibility</span><span class="o">(</span><span class="n">View</span><span class="o">.</span><span class="na">VISIBLE</span><span class="o">);</span>
+</span><span class='line'><span class="n">commentsView</span><span class="o">.</span><span class="na">setVisibility</span><span class="o">(</span><span class="n">View</span><span class="o">.</span><span class="na">GONE</span><span class="o">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;}</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<h1>Behaviours</h1>
+
+<p>One of the most interesting new feature that <code>CoordinatorLayout</code> brings is the use of <code>Behaviours</code>. One can set dependencies between <code>Views</code> and react to the changes in the dependent view.</p>
+
+<p>The Design Library already has several examples of <code>Behaviours</code> and those are a very good starting point for us. In this case, the idea was to hide the <code>FloatingActionBar</code> when scrolling up the comments list so the reading experience wasn&rsquo;t compromised.</p>
+
+<p>In order to do so, we want the <code>FAB</code> to scroll anchored to the <code>AppBarLayout</code> and disappear once the its dependent view is no longer visible.</p>
+
+<p><img class="<a" src="href="https://raw.githubusercontent.com/malmstein/yahnac/master/art/fab_behaviour.gif">https://raw.githubusercontent.com/malmstein/yahnac/master/art/fab_behaviour.gif</a>&#8221;></p>
+
+<p>For this purpose we are going to extend the <a href="https://developer.android.com/reference/android/support/design/widget/FloatingActionButton.Behavior.html">FloatingActionButton.Behavior</a>. Basically, we only react to vertical scroll and default to the <code>CoordinatorLayout</code> scroll. Called when a descendant of the <code>CoordinatorLayout</code> attempts to initiate a nested scroll.</p>
+
+<p>Once the <code>AppBarLayout</code> is hidden then the <code>FloatingActionBar</code> needs to be hidden as well. In order to do so we just have to check the vertical offset and start the out animation. To make things a bit more interesting we&rsquo;ll use a scaling animation to make the button disappear as opposed to simply hiding it.</p>
+
+<p><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">onStartNestedScroll</span><span class="o">(&amp;</span><span class="n">hellip</span><span class="o">;)</span> <span class="o">{&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="k">return</span> <span class="n">nestedScrollAxes</span> <span class="o">==</span> <span class="n">ViewCompat</span><span class="o">.</span><span class="na">SCROLL_AXIS_VERTICAL</span>
+</span><span class='line'>        <span class="o">||</span> <span class="kd">super</span><span class="o">.</span><span class="na">onStartNestedScroll</span><span class="o">(</span><span class="n">coordinatorLayout</span><span class="o">,</span>
+</span><span class='line'>        <span class="n">child</span><span class="o">,</span> <span class="n">directTargetChild</span><span class="o">,</span> <span class="n">target</span><span class="o">,</span> <span class="n">nestedScrollAxes</span><span class="o">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;}&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">public</span> <span class="kt">void</span> <span class="nf">onNestedScroll</span><span class="o">(&amp;</span><span class="n">hellip</span><span class="o">;)</span> <span class="o">{</span>
+</span><span class='line'>  <span class="kd">super</span><span class="o">.</span><span class="na">onNestedScroll</span><span class="o">(&amp;</span><span class="n">hellip</span><span class="o">;);&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="nf">if</span> <span class="o">(</span><span class="n">dyConsumed</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">&amp;</span><span class="n">amp</span><span class="o">;&amp;</span><span class="n">amp</span><span class="o">;</span> <span class="o">!</span><span class="k">this</span><span class="o">.</span><span class="na">isAnimatingOut</span>
+</span><span class='line'>    <span class="o">&amp;</span><span class="n">amp</span><span class="o">;&amp;</span><span class="n">amp</span><span class="o">;</span> <span class="n">child</span><span class="o">.</span><span class="na">getVisibility</span><span class="o">()</span> <span class="o">==</span> <span class="n">View</span><span class="o">.</span><span class="na">VISIBLE</span><span class="o">)</span> <span class="o">{&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span>  <span class="nf">animateOut</span><span class="o">(</span><span class="n">child</span><span class="o">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="o">}</span> <span class="k">else</span> <span class="nf">if</span> <span class="o">(</span><span class="n">dyConsumed</span> <span class="o">&amp;</span><span class="n">lt</span><span class="o">;</span> <span class="mi">0</span> <span class="o">&amp;</span><span class="n">amp</span><span class="o">;&amp;</span><span class="n">amp</span><span class="o">;</span>
+</span><span class='line'>    <span class="n">child</span><span class="o">.</span><span class="na">getVisibility</span><span class="o">()</span> <span class="o">!=</span> <span class="n">View</span><span class="o">.</span><span class="na">VISIBLE</span><span class="o">)</span> <span class="o">{&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span>  <span class="nf">animateIn</span><span class="o">(</span><span class="n">child</span><span class="o">);</span>
+</span><span class='line'><span class="o">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="o">}</span>
+</span><span class='line'><span class="o">}&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="kd">private</span> <span class="kt">void</span> <span class="nf">animateOut</span><span class="o">(</span><span class="kd">final</span> <span class="n">FloatingActionButton</span> <span class="n">button</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">button</span><span class="o">.</span><span class="na">setScaleX</span><span class="o">(</span><span class="mi">1</span><span class="o">);</span>
+</span><span class='line'>    <span class="n">button</span><span class="o">.</span><span class="na">setScaleY</span><span class="o">(</span><span class="mi">1</span><span class="o">);</span>
+</span><span class='line'>    <span class="n">button</span><span class="o">.</span><span class="na">animate</span><span class="o">()</span>
+</span><span class='line'>            <span class="o">.</span><span class="na">scaleX</span><span class="o">(</span><span class="mi">0</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">.</span><span class="na">scaleY</span><span class="o">(</span><span class="mi">0</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">.</span><span class="na">setInterpolator</span><span class="o">(</span><span class="n">animationInterpolator</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">.</span><span class="na">start</span><span class="o">();</span>
+</span><span class='line'><span class="o">}&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<h1>Conclusion</h1>
+
+<p>The <code>Design Support Library</code> is a huge improvement in the Android development world. It&rsquo;s never been so easy to follow the design patterns that Google puts in place, there are no more excuses now. We have all the tools needed in order to build proper Material Design applications on Android.</p>
+
+<p>In terms of <a href="https://play.google.com/store/apps/details?id=com.malmstein.yahnac">Yahnac</a>. The application is now updated with what you&rsquo;ve seen here and it&rsquo;s now a much better Hacker News client.</p>
+
+<p>In case you are interested, I&rsquo;ve created a <a href="https://plus.google.com/communities/108233780766400792163">Google+ Community</a> where you are more than welcome to provide feedback, bug reports or any other related question. Looking forward to it!</p>
+]]></content>
+  </entry>
+  
+</feed>
