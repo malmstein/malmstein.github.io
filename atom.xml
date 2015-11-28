@@ -4,7 +4,7 @@
   <title><![CDATA[David Gonzalez]]></title>
   <link href="http://malmstein.github.io/atom.xml" rel="self"/>
   <link href="http://malmstein.github.io/"/>
-  <updated>2015-09-20T10:46:50+01:00</updated>
+  <updated>2015-11-28T15:51:47+00:00</updated>
   <id>http://malmstein.github.io/</id>
   <author>
     <name><![CDATA[David Gonzalez]]></name>
@@ -12,6 +12,570 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Introduction to Google Eddystone]]></title>
+    <link href="http://malmstein.github.io/blog/2015/11/28/introduction-to-google-eddystone/"/>
+    <updated>2015-11-28T14:49:19+00:00</updated>
+    <id>http://malmstein.github.io/blog/2015/11/28/introduction-to-google-eddystone</id>
+    <content type="html"><![CDATA[<p>Bluetooth beacons are transmitters that use Bluetooth Low Energy 4.0 (BLE) to broadcast signals that can be heard by compatible or smart devices.  These transmitters can be powered by batteries or a fixed power source such as a USB adapter. When a smart device is in a beacon’s proximity, the beacon will automatically recognize it and will be able to interact with that device.</p>
+
+<p>A few weeks ago, we were lucky enough to be introduced to the Eddystone project by the team here in London. It&rsquo;s certainly a very interesting project and I thought it&rsquo;d be a good idea to share our experience.</p>
+
+<p><img src="https://lh3.googleusercontent.com/gcEhJFg9o3geDddamHn-HQthPyaYhyyWxAC7nY2E6LI-bBCkHeLsPqB7ZpebwAFXsDvlx9V66Jqw98YlTy6DxeE4soDA7Q=s1600"></p>
+
+<!-- more -->
+
+
+<h1>What&rsquo;s the Google Eddystone project</h1>
+
+<p>Eddystone is a protocol specification that defines a BLE message format for proximity beacon messages. It is robust and extensible: It describes several different frame types that may be used individually or in combinations to create beacons that can be used for a variety of applications. It’s cross-platform, capable of supporting Android, iOS or any platform that supports BLE beacons. And it’s available on <a href="https://github.com/google/eddystone">GitHub</a> under the open-source Apache v2.0 license, for everyone to use and help improve.</p>
+
+<h1>Register your beacons</h1>
+
+<p>Before we can start playing with the APIs we need to provision our devices. Since beacons is not something you can buy from your local grocery store, you will need to purchase one of the developer kits from one of the <a href="https://developers.google.com/beacons/?#beacon-manufacturers">several manufacturers</a> which Google has already partnered with.</p>
+
+<p>In our case, we are going to use one of Developer Kits from <a href="http://estimote.com/">Estimote</a></p>
+
+<p><img src="https://order.estimote.com/images/box_devkit.png"></p>
+
+<p>Unfortunately, each manufacturer has it&rsquo;s own process to provision the beacons. For that reason, I&rsquo;d strongly recommend sticking with just one manufacturer for your development purposes. Estimote happens to have a very simple process in order to provision the beacons, just a couple of minutes and we were ready to go!</p>
+
+<h2>No beacons? No problem</h2>
+
+<p>It&rsquo;s also possible to give a go at the Eddystone platform without purchasing some beacons. There is a <a href="https://github.com/google/eddystone/tree/master/eddystone-uid/tools/txeddystone-uid">simple Android application</a> that allows your phone to broadcast Eddystone-UID BLE packets. Only some more recent devices are capable of using this ability classes. The application will check if your device is compatible and show an error dialog if not. The Nexus 6 phone and Nexus 9 tablet are known to work well.</p>
+
+<h1>Getting started</h1>
+
+<p>In order to make use of the beacons platform, you&rsquo;ll need to setup a project in the Google Developers Console account. Follow <a href="https://developers.google.com/beacons/proximity/get-started">these instructions</a> to create a project and register the application with your account. You&rsquo;ll have to enable the <a href="https://developers.google.com/beacons/proximity/guides">Google Proximity Beacon API</a> and create both an Android API Key and an Android OAuth 2.0 client ID.</p>
+
+<p>As it turns out, following this order is very important. It took me a while to figure that out, but creating an API Key before enabling the permission was causing some problems and I wasn&rsquo;t able to connect to the Google services. After creating the project and adding the proper APIs, this is what you should be seeing.</p>
+
+<p><img src="https://raw.githubusercontent.com/malmstein/eddystone-sample/master/art/gdc_setup.png"></p>
+
+<h1>Google Proximity Beacon API</h1>
+
+<p>One of the biggest advantages that the Proximity API introduces is the ability to manage your BLE beacons using a REST interface. It&rsquo;s now possible to manage an entire beacon fleet from your living room with ease. There is no need to be physically next to the beacon in order to manage it. If you take a look at the <a href="https://developers.google.com/beacons/proximity/reference/rest/">complete reference</a> you&rsquo;ll see that this API provides services to register, manage, index, and search beacons.</p>
+
+<p>The authentication happens using an <a href="https://developers.google.com/identity/protocols/OAuth2">OAuth</a> access token from a signed-in user with <strong>Is owner</strong> or <strong>Can edit</strong> permissions in the Google Developers Console project.</p>
+
+<h1>The sample application</h1>
+
+<p>For the purpose of this post, I&rsquo;ve built an application that <strong>allows you to register and manage</strong> Eddystone beacons. It&rsquo;s very simple to use and showcases several endpoints from the Proximity API that are worth looking at.</p>
+
+<p><img src="https://developers.google.com/beacons/images/beacon_integration_overview.png"></p>
+
+<h1>Scanning Beacons</h1>
+
+<p>Before we can start registering and managing the beacons, seems obvious but we first need to find them, The setup is not very complicated, however it&rsquo;s very important to understand what&rsquo;s happening. First of all, we need to add the permissions so the application has access access to Bluetooth sensor.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'><span class="nt">&lt;uses-permission</span> <span class="na">android:name=</span><span class="s">&quot;android.permission.BLUETOOTH&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'><span class="nt">&lt;uses-permission</span> <span class="na">android:name=</span><span class="s">&quot;android.permission.BLUETOOTH_ADMIN&quot;</span> <span class="nt">/&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Lucky for us, <a href="http://developer.android.com/reference/android/bluetooth/le/BluetoothLeScanner.html">BluetoothLeScanner</a> provides methods to perform scan related operations for Bluetooth LE devices. We can restrict the scan to only those beacons that are of interest to us <a href="http://developer.android.com/reference/android/bluetooth/le/ScanFilter.html">ScanFilter</a> and we can also request different types of callbacks for delivering the result.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="c1">// The Eddystone Service UUID, 0xFEAA.</span>
+</span><span class='line'><span class="kd">public</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">ParcelUuid</span> <span class="n">EDDYSTONE_SERVICE_UUID</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">ParcelUuid</span><span class="o">.</span><span class="na">fromString</span><span class="o">(</span><span class="s">&quot;0000FEAA-0000-1000-8000-00805F9B34FB&quot;</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// A filter that scans only for devices with the Eddystone Service UUID.</span>
+</span><span class='line'><span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">ScanFilter</span> <span class="n">EDDYSTONE_SCAN_FILTER</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ScanFilter</span><span class="o">.</span><span class="na">Builder</span><span class="o">()</span>
+</span><span class='line'>        <span class="o">.</span><span class="na">setServiceUuid</span><span class="o">(</span><span class="n">EDDYSTONE_SERVICE_UUID</span><span class="o">)</span>
+</span><span class='line'>        <span class="o">.</span><span class="na">build</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// An aggressive scan for nearby devices that reports immediately.</span>
+</span><span class='line'><span class="kd">public</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">ScanSettings</span> <span class="n">SCAN_SETTINGS</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">new</span> <span class="n">ScanSettings</span><span class="o">.</span><span class="na">Builder</span><span class="o">().</span>
+</span><span class='line'>                <span class="n">setScanMode</span><span class="o">(</span><span class="n">ScanSettings</span><span class="o">.</span><span class="na">SCAN_MODE_LOW_LATENCY</span><span class="o">)</span>
+</span><span class='line'>                <span class="o">.</span><span class="na">setReportDelay</span><span class="o">(</span><span class="mi">0</span><span class="o">)</span>
+</span><span class='line'>                <span class="o">.</span><span class="na">build</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'><span class="kd">public</span> <span class="kt">void</span> <span class="nf">startScan</span><span class="o">(</span><span class="n">BluetoothAdapter</span> <span class="n">btAdapter</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">scanner</span> <span class="o">=</span> <span class="n">btAdapter</span><span class="o">.</span><span class="na">getBluetoothLeScanner</span><span class="o">();</span>
+</span><span class='line'>    <span class="n">scanner</span><span class="o">.</span><span class="na">startScan</span><span class="o">(</span><span class="n">EDDYSTONE_SCAN_FILTER</span><span class="o">,</span>
+</span><span class='line'>        <span class="n">SCAN_SETTINGS</span><span class="o">,</span>
+</span><span class='line'>        <span class="n">scanCallback</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Since we are only interested in <strong>Eddystone</strong> beacons we need to create a filter that scans only devices with <strong>Eddystone Service UUID</strong>. The second parameter in this method corresponds to the scan settings used to define the parameters for the scan via <a href="http://developer.android.com/reference/android/bluetooth/le/ScanSettings.htmlused">ScanSettings</a>. There are three different scan modes available: <a href="http://developer.android.com/reference/android/bluetooth/le/ScanSettings.html#SCAN_MODE_BALANCED">balanced</a>, <a href="http://developer.android.com/reference/android/bluetooth/le/ScanSettings.html#SCAN_MODE_LOW_LATENCY">low latency</a> and <a href="http://developer.android.com/reference/android/bluetooth/le/ScanSettings.html#SCAN_MODE_LOW_POWER">low power</a>. For the purpose of this example we are using an aggressive approach since we want to react to the beacons as soon as possible. This approach is <strong>only recommended when the application is running in the foreground</strong>.</p>
+
+<p>Now that we&rsquo;ve decided the scanning approach we want to follow it&rsquo;s time to look at the <strong>Callback</strong> that the BluetoothAdapter calls.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">ScanCallback</span> <span class="n">scanCallback</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">ScanCallback</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onScanResult</span><span class="o">(</span><span class="kt">int</span> <span class="n">callbackType</span><span class="o">,</span> <span class="n">ScanResult</span> <span class="n">result</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="o">...</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'><span class="o">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>At this point we need to check if we are receiving a valid Eddystone beacon. What the adapter sends us back is a <a href="http://developer.android.com/reference/android/bluetooth/le/ScanResult.html">ScanResult</a> which may or may not be an Eddystone beacon. We&rsquo;ll use the frame type byte to do the validation.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="c1">// The Eddystone-UID frame type byte https://github.com/google/eddystone</span>
+</span><span class='line'><span class="kd">public</span> <span class="kd">static</span> <span class="kd">final</span> <span class="kt">byte</span> <span class="n">EDDYSTONE_UID_FRAME_TYPE</span> <span class="o">=</span> <span class="mh">0x00</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="kd">public</span> <span class="kd">static</span> <span class="kt">boolean</span> <span class="nf">isValid</span><span class="o">(</span><span class="n">ScanResult</span> <span class="n">result</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">if</span> <span class="o">(</span><span class="n">result</span><span class="o">.</span><span class="na">getScanRecord</span><span class="o">()</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">return</span> <span class="kc">false</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">ScanRecord</span> <span class="n">scanRecord</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="na">getScanRecord</span><span class="o">();</span>
+</span><span class='line'>  <span class="kt">byte</span><span class="o">[]</span> <span class="n">serviceData</span> <span class="o">=</span> <span class="n">scanRecord</span><span class="o">.</span><span class="na">getServiceData</span><span class="o">(</span><span class="n">EDDYSTONE_SERVICE_UUID</span><span class="o">);</span>
+</span><span class='line'>  <span class="k">if</span> <span class="o">(</span><span class="n">serviceData</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">return</span> <span class="kc">false</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">if</span> <span class="o">(</span><span class="n">serviceData</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span> <span class="o">!=</span> <span class="n">Eddystone</span><span class="o">.</span><span class="na">EDDYSTONE_UID_FRAME_TYPE</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">return</span> <span class="kc">false</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>  <span class="k">return</span> <span class="kc">true</span><span class="o">;</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We are now able to recognize if the scan result is an Eddystone beacon or not, but still don&rsquo;t know anything about the beacon itself. In order to do that we&rsquo;ll need to use the Google Client API, which is why earlier we had to create a Project in the Developers Console.</p>
+
+<p><img src="https://raw.githubusercontent.com/malmstein/eddystone-sample/master/art/unspecified_beacons.png"></p>
+
+<h1>Authentication</h1>
+
+<p>You&rsquo;ll only be able to manage the beacons that are associated to your Google account. There are several steps involved in this process and we&rsquo;ll cover them all in a second.</p>
+
+<p>First of all you&rsquo;ll need to associate your account with the project that we created earlier in the Google Developer Console.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="nd">@Override</span>
+</span><span class='line'> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onSignInClicked</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>     <span class="n">String</span><span class="o">[]</span> <span class="n">accountTypes</span> <span class="o">=</span> <span class="k">new</span> <span class="n">String</span><span class="o">[]{</span><span class="s">&quot;com.google&quot;</span><span class="o">};</span>
+</span><span class='line'>     <span class="n">Intent</span> <span class="n">intent</span> <span class="o">=</span> <span class="n">AccountPicker</span><span class="o">.</span><span class="na">newChooseAccountIntent</span><span class="o">(</span>
+</span><span class='line'>             <span class="kc">null</span><span class="o">,</span> <span class="kc">null</span><span class="o">,</span> <span class="n">accountTypes</span><span class="o">,</span> <span class="kc">false</span><span class="o">,</span> <span class="kc">null</span><span class="o">,</span> <span class="kc">null</span><span class="o">,</span> <span class="kc">null</span><span class="o">,</span> <span class="kc">null</span><span class="o">);</span>
+</span><span class='line'>     <span class="n">startActivityForResult</span><span class="o">(</span><span class="n">intent</span><span class="o">,</span> <span class="n">REQUEST_CODE_PICK_ACCOUNT</span><span class="o">);</span>
+</span><span class='line'> <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p> We&rsquo;ll use the <code>AccountPicker</code> from Play Services in order to start the authentication flow. Once the account is selected we&rsquo;ll start the <strong>Authentication</strong> call. Using Play Services and the useful <code>GoogleAuthUtil</code> class we&rsquo;ll be able to generate the token that validates the user. Besides the account name, we&rsquo;ll also need to send the <strong>AUTH_SCOPE</strong> for the task. In this case, authentication to register the beacons.</p>
+
+<p> Yes, it&rsquo;s an <code>AsyncTask</code> but obviously you are more than welcome to handle this with your preferred Non-UI thread solution.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">AUTH_SCOPE</span> <span class="o">=</span> <span class="s">&quot;oauth2:https://www.googleapis.com/auth/userlocation.beacon.registry&quot;</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">protected</span> <span class="n">Void</span> <span class="nf">doInBackground</span><span class="o">(</span><span class="n">Void</span><span class="o">...</span> <span class="n">params</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">Log</span><span class="o">.</span><span class="na">i</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;checking authorization for &quot;</span> <span class="o">+</span> <span class="n">accountName</span><span class="o">);</span>
+</span><span class='line'>  <span class="k">try</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">GoogleAuthUtil</span><span class="o">.</span><span class="na">getToken</span><span class="o">(</span><span class="n">activity</span><span class="o">,</span> <span class="n">accountName</span><span class="o">,</span> <span class="n">AUTH_SCOPE</span><span class="o">);</span>
+</span><span class='line'>  <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">UserRecoverableAuthException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="c1">// GooglePlayServices.apk is either old, disabled, or not present</span>
+</span><span class='line'>      <span class="c1">// so we need to show the user some UI in the activity to recover.</span>
+</span><span class='line'>      <span class="n">handleAuthException</span><span class="o">(</span><span class="n">activity</span><span class="o">,</span> <span class="n">e</span><span class="o">);</span>
+</span><span class='line'>  <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">GoogleAuthException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="c1">// Some other type of unrecoverable exception has occurred.</span>
+</span><span class='line'>      <span class="c1">// Report and log the error as appropriate for your app.</span>
+</span><span class='line'>      <span class="n">Log</span><span class="o">.</span><span class="na">w</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;GoogleAuthException: &quot;</span> <span class="o">+</span> <span class="n">e</span><span class="o">);</span>
+</span><span class='line'>  <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">IOException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="c1">// The fetchToken() method handles Google-specific exceptions,</span>
+</span><span class='line'>      <span class="c1">// so this indicates something went wrong at a higher level.</span>
+</span><span class='line'>      <span class="c1">// TIP: Check for network connectivity before starting the AsyncTask.</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>  <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The first time the user starts the authentication flow a dialog will appear:</p>
+
+<p><img src="https://raw.githubusercontent.com/malmstein/eddystone-sample/master/art/authentication.png"></p>
+
+<h1>Accessing to a beacon data</h1>
+
+<p>At this point we can both scan beacons and use our account to register them with Eddystone, however we are still not reading any data from Eddystone yet. The magic happens in the <a href="https://github.com/malmstein/eddystone-sample/master/proximitybeacon/BluetoothScanner">BluetoothScanner</a> class thanks to the interface <a href="https://github.com/malmstein/eddystone-sample/master/proximitybeacon/ProximityBeacon">ProximityBeacon</a>. This interface maps all the rest endpoints supported by Eddystone and that will allow us to access all it&rsquo;s capabilities. We wouldn&rsquo;t be able to access all these endpoints unless our account has been previously authenticated, this is why is so important to follow the proper order of steps to get here.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">ScanCallback</span> <span class="n">scanCallback</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">ScanCallback</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onScanResult</span><span class="o">(</span><span class="kt">int</span> <span class="n">callbackType</span><span class="o">,</span> <span class="n">ScanResult</span> <span class="n">result</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">Beacon</span> <span class="n">scannedBeacon</span> <span class="o">=</span> <span class="n">validateScan</span><span class="o">(</span><span class="n">result</span><span class="o">);</span>
+</span><span class='line'>      <span class="k">if</span> <span class="o">(</span><span class="n">scannedBeacon</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">((</span><span class="n">proximityBeacon</span> <span class="o">==</span> <span class="kc">null</span><span class="o">))</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">listener</span><span class="o">.</span><span class="na">onBeaconScanned</span><span class="o">(</span><span class="n">beacon</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">else</span> <span class="nf">if</span> <span class="o">(!</span><span class="n">proximityBeacon</span><span class="o">.</span><span class="na">hasAccount</span><span class="o">())</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">listener</span><span class="o">.</span><span class="na">onBeaconScanned</span><span class="o">(</span><span class="n">beacon</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">proximityBeacon</span><span class="o">.</span><span class="na">getBeacon</span><span class="o">(</span><span class="n">GetBeaconCallback</span><span class="o">,</span> <span class="n">beacon</span><span class="o">.</span><span class="na">getBeaconName</span><span class="o">());</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'><span class="o">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>You are already familiar with this callback, it&rsquo;s what we receive from the <code>BluetoothScanner</code> when locating a beacon. After validating that the scan result is indeed an Eddystone beacon, we&rsquo;ll make use of the <code>ProimityBeacon</code> API in order to retrieve it&rsquo;s data.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">proximityBeacon</span><span class="o">.</span><span class="na">getBeacon</span><span class="o">(</span><span class="k">new</span> <span class="nf">Callback</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onFailure</span><span class="o">(</span><span class="n">Request</span> <span class="n">request</span><span class="o">,</span> <span class="n">IOException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Log</span><span class="o">.</span><span class="na">e</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="n">String</span><span class="o">.</span><span class="na">format</span><span class="o">(</span><span class="s">&quot;Failed request: %s, IOException %s&quot;</span><span class="o">,</span> <span class="n">request</span><span class="o">,</span> <span class="n">e</span><span class="o">));</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onResponse</span><span class="o">(</span><span class="n">Response</span> <span class="n">response</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Beacon</span> <span class="n">fetchedBeacon</span><span class="o">;</span>
+</span><span class='line'>        <span class="k">switch</span> <span class="o">(</span><span class="n">response</span><span class="o">.</span><span class="na">code</span><span class="o">())</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">case</span> <span class="mi">200</span><span class="o">:</span>
+</span><span class='line'>                <span class="k">try</span> <span class="o">{</span>
+</span><span class='line'>                    <span class="n">String</span> <span class="n">body</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="na">body</span><span class="o">().</span><span class="na">string</span><span class="o">();</span>
+</span><span class='line'>                    <span class="n">fetchedBeacon</span> <span class="o">=</span> <span class="n">beaconConverter</span><span class="o">.</span><span class="na">from</span><span class="o">(</span><span class="k">new</span> <span class="nf">JSONObject</span><span class="o">(</span><span class="n">body</span><span class="o">));</span>
+</span><span class='line'>                <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">JSONException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>                    <span class="n">Log</span><span class="o">.</span><span class="na">e</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;JSONException&quot;</span><span class="o">,</span> <span class="n">e</span><span class="o">);</span>
+</span><span class='line'>                    <span class="k">return</span><span class="o">;</span>
+</span><span class='line'>                <span class="o">}</span>
+</span><span class='line'>                <span class="k">break</span><span class="o">;</span>
+</span><span class='line'>            <span class="k">case</span> <span class="mi">403</span><span class="o">:</span>
+</span><span class='line'>                <span class="n">fetchedBeacon</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">Beacon</span><span class="o">(</span><span class="n">beacon</span><span class="o">.</span><span class="na">getType</span><span class="o">(),</span> <span class="n">beacon</span><span class="o">.</span><span class="na">getId</span><span class="o">(),</span> <span class="n">Beacon</span><span class="o">.</span><span class="na">Status</span><span class="o">.</span><span class="na">NOT_AUTHORIZED</span><span class="o">);</span>
+</span><span class='line'>                <span class="k">break</span><span class="o">;</span>
+</span><span class='line'>            <span class="k">case</span> <span class="mi">404</span><span class="o">:</span>
+</span><span class='line'>                <span class="n">fetchedBeacon</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">Beacon</span><span class="o">(</span><span class="n">beacon</span><span class="o">.</span><span class="na">getType</span><span class="o">(),</span> <span class="n">beacon</span><span class="o">.</span><span class="na">getId</span><span class="o">(),</span> <span class="n">Beacon</span><span class="o">.</span><span class="na">Status</span><span class="o">.</span><span class="na">UNREGISTERED</span><span class="o">);</span>
+</span><span class='line'>                <span class="k">break</span><span class="o">;</span>
+</span><span class='line'>            <span class="k">default</span><span class="o">:</span>
+</span><span class='line'>                <span class="n">Log</span><span class="o">.</span><span class="na">e</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;Unhandled beacon service response: &quot;</span> <span class="o">+</span> <span class="n">response</span><span class="o">);</span>
+</span><span class='line'>                <span class="k">return</span><span class="o">;</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'><span class="o">},</span> <span class="n">beacon</span><span class="o">.</span><span class="na">getBeaconName</span><span class="o">());</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The Proximity Beacon API will return a JSON response when the request is successful. We&rsquo;ll get more into detail about that JSON to Object conversion in a second. Firstly, I wanted to drive your attention to the other two status code responses, 403 and 404.</p>
+
+<p>We&rsquo;ll get a 403 if the request is made with an account that has <strong>not authorized access</strong> to the Eddystone platform as seen before. This means that we can&rsquo;t read or modify the beacon data related to Eddystone. Receiving a 404 means that the beacon itself is not registered with the platform.</p>
+
+<p><img src="https://raw.githubusercontent.com/malmstein/eddystone-sample/master/art/beacons.png"></p>
+
+<p>If you take a look at the <a href="https://github.com/malmstein/eddystone-sample/master/model/beaconConverter">BeaconConverter</a> you&rsquo;ll get to see all the different values that the platform sends us. Such as <code>advertisingId</code>, <code>description</code> and even more interesting things like <code>placeId</code> which gives is the Google Places Id which this beacon has been assigned to.</p>
+
+<h1>Changing the data associated with a beacon</h1>
+
+<p>Once we&rsquo;ve done all the dance of scanning, authenticating and receiving the beacons, we can finally look what&rsquo;s inside them! To make it easy I&rsquo;m presenting the data in three separate <code>Cards</code>: <strong>Info</strong>, <strong>Location</strong> and <strong>Attachments</strong>.</p>
+
+<p>Any time we want to modify the data of a beacon we&rsquo;ll need to make a call to <code>updateBeacon</code> from the REST API.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="kt">void</span> <span class="nf">updateRemoteBeacon</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">JSONObject</span> <span class="n">json</span> <span class="o">=</span> <span class="n">beaconConverter</span><span class="o">.</span><span class="na">toJson</span><span class="o">(</span><span class="n">beacon</span><span class="o">);</span>
+</span><span class='line'>    <span class="n">proximityBeacon</span><span class="o">.</span><span class="na">updateBeacon</span><span class="o">(</span><span class="n">updateBeaconCallback</span><span class="o">,</span> <span class="n">beacon</span><span class="o">.</span><span class="na">getBeaconName</span><span class="o">(),</span> <span class="n">json</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">Callback</span> <span class="n">updateBeaconCallback</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">Callback</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onFailure</span><span class="o">(</span><span class="n">Request</span> <span class="n">request</span><span class="o">,</span> <span class="n">IOException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Log</span><span class="o">.</span><span class="na">d</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;Failed request: &quot;</span> <span class="o">+</span> <span class="n">request</span><span class="o">,</span> <span class="n">e</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onResponse</span><span class="o">(</span><span class="n">Response</span> <span class="n">response</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">String</span> <span class="n">body</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="na">body</span><span class="o">().</span><span class="na">string</span><span class="o">();</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">response</span><span class="o">.</span><span class="na">isSuccessful</span><span class="o">())</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">bluetoothScanner</span><span class="o">.</span><span class="na">fetchBeaconStatus</span><span class="o">(</span><span class="n">beacon</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">Log</span><span class="o">.</span><span class="na">d</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;Unsuccessful updateBeacon request: &quot;</span> <span class="o">+</span> <span class="n">body</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'><span class="o">};</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>As you can see we are following the same pattern as before, there is a remote endpoint that we hit and a callback when we check the response. The difference here is that we need to pass a JSON object to the <code>updateMethod</code> call. The <a href="https://github.com/malmstein/eddystone-sample/master/model/beaconConverter">BeaconConverter</a> class does that for us.</p>
+
+<p><img src="https://raw.githubusercontent.com/malmstein/eddystone-sample/master/art/manage_beacon.png"></p>
+
+<h2>Adding Attachments to a Beacon</h2>
+
+<p>One of the most interesting features of Eddystone is the ability to add attachments to your beacons. This means that you could add some information there that your application users could read (not modify). Imagine a train station with 20 rail lines and several beacons placed next to each line. Your application could ready the attachment from one of those beacons and tell the user that he / she is standing next to the middle section of rail line number 12. The possibilities are endless!</p>
+
+<p>When you create an attachment, you must populate two fields.
+* namespacedType: a string made up of a namespace identifier, followed by a forward slash and the data type. The namespace identifier can&rsquo;t be modified and is assigned to your Google Developer Console project.
+* data: a base64 encoded value of the data type defined in the namespacedType field.</p>
+
+<p>You may have noticed that <code>updateBeacon</code> does not modify the attachments of a beacon. That&rsquo;s because there is a different endpoint for it. Each attachment is translated to it&rsquo;s own JSON Object and sent to the Proximity Beacon API.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="kt">void</span> <span class="nf">addAttachment</span><span class="o">(</span><span class="kd">final</span> <span class="n">ProximityBeacon</span> <span class="n">proximityBeacon</span><span class="o">,</span> <span class="n">String</span> <span class="n">type</span><span class="o">,</span> <span class="n">String</span> <span class="n">data</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="k">this</span><span class="o">.</span><span class="na">proximityBeacon</span> <span class="o">=</span> <span class="n">proximityBeacon</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">JSONObject</span> <span class="n">body</span> <span class="o">=</span> <span class="n">buildCreateAttachmentJsonBody</span><span class="o">(</span><span class="n">namespace</span><span class="o">,</span> <span class="n">type</span><span class="o">,</span> <span class="n">data</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">Callback</span> <span class="n">createAttachmentCallback</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">Callback</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>        <span class="nd">@Override</span>
+</span><span class='line'>        <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onFailure</span><span class="o">(</span><span class="n">Request</span> <span class="n">request</span><span class="o">,</span> <span class="n">IOException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">Log</span><span class="o">.</span><span class="na">d</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;Failed request: &quot;</span> <span class="o">+</span> <span class="n">request</span><span class="o">,</span> <span class="n">e</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="nd">@Override</span>
+</span><span class='line'>        <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onResponse</span><span class="o">(</span><span class="n">Response</span> <span class="n">response</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">String</span> <span class="n">body</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="na">body</span><span class="o">().</span><span class="na">string</span><span class="o">();</span>
+</span><span class='line'>            <span class="k">if</span> <span class="o">(</span><span class="n">response</span><span class="o">.</span><span class="na">isSuccessful</span><span class="o">())</span> <span class="o">{</span>
+</span><span class='line'>                <span class="k">try</span> <span class="o">{</span>
+</span><span class='line'>                    <span class="n">JSONObject</span> <span class="n">json</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">JSONObject</span><span class="o">(</span><span class="n">body</span><span class="o">);</span>
+</span><span class='line'>                    <span class="n">addAttachmentView</span><span class="o">(</span><span class="n">json</span><span class="o">);</span>
+</span><span class='line'>                <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">JSONException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>                    <span class="n">Log</span><span class="o">.</span><span class="na">d</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;JSONException in building attachment data&quot;</span><span class="o">,</span> <span class="n">e</span><span class="o">);</span>
+</span><span class='line'>                <span class="o">}</span>
+</span><span class='line'>            <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>                <span class="n">Log</span><span class="o">.</span><span class="na">d</span><span class="o">(</span><span class="n">TAG</span><span class="o">,</span> <span class="s">&quot;Unsuccessful createAttachment request: &quot;</span> <span class="o">+</span> <span class="n">body</span><span class="o">);</span>
+</span><span class='line'>            <span class="o">}</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>    <span class="o">};</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">proximityBeacon</span><span class="o">.</span><span class="na">createAttachment</span><span class="o">(</span><span class="n">createAttachmentCallback</span><span class="o">,</span> <span class="n">beacon</span><span class="o">.</span><span class="na">getBeaconName</span><span class="o">(),</span> <span class="n">body</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><img src="https://raw.githubusercontent.com/malmstein/eddystone-sample/master/art/attachments.png"></p>
+
+<h2>Places API</h2>
+
+<p>Another interesting feature of Eddystone is the ability to assign a Beacon to a specific Google Places ID. The very handy <a href="">LatLng</a> class from Play Services allow us to request a Place Picker which will return a <a href="">Place</a> object which gives us all the information we want.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="kt">void</span> <span class="nf">startPlacePickerIntnet</span><span class="o">(</span><span class="kt">double</span> <span class="n">latitude</span><span class="o">,</span> <span class="kt">double</span> <span class="n">longitude</span><span class="o">){</span>
+</span><span class='line'>  <span class="n">LatLng</span> <span class="n">latLng</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">LatLng</span><span class="o">(</span><span class="n">latitude</span><span class="o">,</span> <span class="n">longitude</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">PlacePicker</span><span class="o">.</span><span class="na">IntentBuilder</span> <span class="n">builder</span> <span class="o">=</span> <span class="k">new</span> <span class="n">PlacePicker</span><span class="o">.</span><span class="na">IntentBuilder</span><span class="o">();</span>
+</span><span class='line'>  <span class="k">if</span> <span class="o">(</span><span class="n">latLng</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">builder</span><span class="o">.</span><span class="na">setLatLngBounds</span><span class="o">(</span><span class="k">new</span> <span class="nf">LatLngBounds</span><span class="o">(</span><span class="n">latLng</span><span class="o">,</span> <span class="n">latLng</span><span class="o">));</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>  <span class="n">startActivityForResult</span><span class="o">(</span><span class="n">builder</span><span class="o">.</span><span class="na">build</span><span class="o">(</span><span class="k">this</span><span class="o">),</span> <span class="n">REQUEST_CODE_PLACE_PICKER</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">public</span> <span class="kt">void</span> <span class="nf">onActivityResult</span><span class="o">(</span><span class="kt">int</span> <span class="n">requestCode</span><span class="o">,</span> <span class="kt">int</span> <span class="n">resultCode</span><span class="o">,</span> <span class="n">Intent</span> <span class="n">data</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">requestCode</span> <span class="o">==</span> <span class="n">REQUEST_CODE_PLACE_PICKER</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">resultCode</span> <span class="o">==</span> <span class="n">Activity</span><span class="o">.</span><span class="na">RESULT_OK</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">Place</span> <span class="n">place</span> <span class="o">=</span> <span class="n">PlacePicker</span><span class="o">.</span><span class="na">getPlace</span><span class="o">(</span><span class="n">data</span><span class="o">,</span> <span class="k">this</span><span class="o">);</span>
+</span><span class='line'>            <span class="n">beaconLocationView</span><span class="o">.</span><span class="na">addPlace</span><span class="o">(</span><span class="n">place</span><span class="o">);</span>
+</span><span class='line'>            <span class="n">beacon</span><span class="o">.</span><span class="na">setPlace</span><span class="o">(</span><span class="n">place</span><span class="o">);</span>
+</span><span class='line'>            <span class="n">updateRemoteBeacon</span><span class="o">();</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><img src="https://raw.githubusercontent.com/malmstein/eddystone-sample/master/art/places.gif"></p>
+
+<h1>Conclusion</h1>
+
+<p>Eddystone is a great platform that, once implemented, will bring a whole new set of experiences for our day to day life. There are literally thousands of use cases where the user will be the main beneficiary of this technology. I can&rsquo;t wait to see what developers and companies come up with!</p>
+
+<p>If you are curious to see the whole implementation, all the source code is published on <a href="https://github.com/malmstein/eddystone-sample">Github</a>. As always, all the feedback is welcome!</p>
+
+<h1>Next steps</h1>
+
+<p>You may have seen an empty Tab in the application, it corresponds to the <code>Nearby Messages API</code> which I&rsquo;ll be covering soon. Stay tuned!</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>
+</span></code></pre></td></tr></table></div></figure>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Yahnac Meets the Design Support Library]]></title>
